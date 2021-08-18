@@ -108,9 +108,6 @@ class Model(object):
         use only.
     modelname : str, optional 
         The name to use for the model and its output files when finished.
-    burn7 : bool, optional
-        If True, the legacy burn7 C++ postprocessor will be used. Otherwise, the new pyburn 
-        postprocessor will be used (default).
     outputtype : str, optional
         File extension to use for the output, if using the pyburn postprocessor. Supported extensions
         are `.nc`, `.npy`, `.npz`, `.hdf5`, `.he5`, `.h5`, `.csv`, `.gz`, `.txt`, `.tar`, `.tar.gz`,
@@ -161,11 +158,11 @@ class Model(object):
     """
     def __init__(self,resolution="T21",layers=10,ncpus=4,precision=8,debug=False,inityear=0,
                 recompile=False,optimization=None,mars=False,workdir="most",source=None,force991=False,
-                modelname="MOST_EXP",burn7=False,outputtype=".npz",crashtolerant=False):
+                modelname="MOST_EXP",outputtype=".npz",crashtolerant=False):
         
         global sourcedir
         
-        self.burn7 = burn7
+        #self.burn7 = burn7
         self.mars = mars
         
         self.extension = outputtype
@@ -211,16 +208,16 @@ class Model(object):
                 os.chdir(sourcedir)
                 os.system("touch firstrun")
                 os.system("./configure.sh")
-                if self.burn7:
-                    os.system("nc-config --version > ncversion.tmp")
-                    with open("ncversion.tmp","r") as ncftmpf:
-                        version = float('.'.join(ncftmpf.read().split()[1].split('.')[:2]))
-                    if version>4.2:
-                        os.system("cd postprocessor && ./build_init.sh || ./build_init_compatibility.sh")
-                    else:
-                        os.system("cd postprocessor && rm burn7.x && make")
-                    os.chdir(cwd)
-                    os.system("touch %s/postprocessor/netcdfbuilt"%sourcedir)
+                #if self.burn7:
+                    #os.system("nc-config --version > ncversion.tmp")
+                    #with open("ncversion.tmp","r") as ncftmpf:
+                        #version = float('.'.join(ncftmpf.read().split()[1].split('.')[:2]))
+                    #if version>4.2:
+                        #os.system("cd postprocessor && ./build_init.sh || ./build_init_compatibility.sh")
+                    #else:
+                        #os.system("cd postprocessor && rm burn7.x && make")
+                    #os.chdir(cwd)
+                    #os.system("touch %s/postprocessor/netcdfbuilt"%sourcedir)
                 os.chdir(cwd)
             except PermissionError:
                 raise PermissionError("\nHi! Welcome to ExoPlaSim. It looks like this is the first "+
@@ -232,31 +229,31 @@ class Model(object):
                                     "python3 myscript.py. If you did this because pip install "+
                                     "breaks without sudo privileges, then try using \n\n\tpip "+ "install --user exoplasim \n\ninstead. It is generally a "+
                                     "very bad idea to install things with sudo pip install.")
-        if self.burn7:
-            self.extension = ".nc"
-            if not os.path.isfile("%s/postprocessor/netcdfbuilt"%sourcedir): #netcdf postprocessor hasn't been built
-                try:
-                    cwd = os.getcwd()
-                    os.chdir(sourcedir)
-                    os.system("nc-config --version > ncversion.tmp")
-                    with open("ncversion.tmp","r") as ncftmpf:
-                        version = float('.'.join(ncftmpf.read().split()[1].split('.')[:2]))
-                    if version>4.2:
-                        os.system("cd postprocessor && ./build_init.sh || ./build_init_compatibility.sh")
-                    else:
-                        os.system("cd postprocessor && rm burn7.x && make")
-                    os.chdir(cwd)
-                    os.system("touch %s/postprocessor/netcdfbuilt"%sourcedir)
-                except PermissionError:
-                    raise PermissionError("\nHi! Welcome to ExoPlaSim. It looks like this is the first "+
-                                    "time you're using this program since installing, and you "+
-                                    "may have installed it to a location that needs root "+
-                                    "privileges to modify. This is not ideal! If you want to "+
-                                    "use the program this way, you will need to run python code"+
-                                    " that uses ExoPlaSim with sudo privileges; i.e. sudo "+
-                                    "python3 myscript.py. If you did this because pip install "+
-                                    "breaks without sudo privileges, then try using \n\n\tpip "+ "install --user exoplasim \n\ninstead. It is generally a "+
-                                    "very bad idea to install things with sudo pip install.")
+        #if self.burn7:
+            #self.extension = ".nc"
+            #if not os.path.isfile("%s/postprocessor/netcdfbuilt"%sourcedir): #netcdf postprocessor hasn't been built
+                #try:
+                    #cwd = os.getcwd()
+                    #os.chdir(sourcedir)
+                    #os.system("nc-config --version > ncversion.tmp")
+                    #with open("ncversion.tmp","r") as ncftmpf:
+                        #version = float('.'.join(ncftmpf.read().split()[1].split('.')[:2]))
+                    #if version>4.2:
+                        #os.system("cd postprocessor && ./build_init.sh || ./build_init_compatibility.sh")
+                    #else:
+                        #os.system("cd postprocessor && rm burn7.x && make")
+                    #os.chdir(cwd)
+                    #os.system("touch %s/postprocessor/netcdfbuilt"%sourcedir)
+                #except PermissionError:
+                    #raise PermissionError("\nHi! Welcome to ExoPlaSim. It looks like this is the first "+
+                                    #"time you're using this program since installing, and you "+
+                                    #"may have installed it to a location that needs root "+
+                                    #"privileges to modify. This is not ideal! If you want to "+
+                                    #"use the program this way, you will need to run python code"+
+                                    #" that uses ExoPlaSim with sudo privileges; i.e. sudo "+
+                                    #"python3 myscript.py. If you did this because pip install "+
+                                    #"breaks without sudo privileges, then try using \n\n\tpip "+ "install --user exoplasim \n\ninstead. It is generally a "+
+                                    #"very bad idea to install things with sudo pip install.")
         
         self.runscript=None
         self.otherargs = {}
@@ -320,8 +317,8 @@ class Model(object):
         
         self.executable = source+"/most_plasim_t%d_l%d_p%d.x"%(self.nsp,self.layers,ncpus)
         
-        if self.burn7:
-            burnsource = "%s/postprocessor"%sourcedir
+        #if self.burn7:
+            #burnsource = "%s/postprocessor"%sourcedir
         
         print("Checking for %s...."%self.executable)
         
@@ -343,8 +340,8 @@ class Model(object):
                     "cd $cwd")
         
         os.system("cp %s/* %s/"%(source,self.workdir))
-        if self.burn7:
-            os.system("cp %s/burn7.x %s/"%(burnsource,self.workdir))
+        #if self.burn7:
+            #os.system("cp %s/burn7.x %s/"%(burnsource,self.workdir))
         
         #Copy the executable to the working directory, and then CD there
         os.system("cp %s %s"%(self.executable,self.workdir))
@@ -1010,7 +1007,7 @@ class Model(object):
             Which type of output to set for this--is this a regular output file ('regular'), a
             snapshot output file ('snapshot'), or high-cadence ('highcadence')?
         log : str, optional
-            The log file to which burn7 should output standard output and errors
+            The log file to which pyburn should output standard output and errors
         crashifbroken : bool, optional 
             True/False. If True, exoplasim will run .integritycheck() on the file.
         **kwargs : keyword arguments
@@ -1026,67 +1023,66 @@ class Model(object):
         namelist = None
         if type(variables)==str:
             namelist = variables
-        if self.burn7:
-            stat=os.system("./burn7.x -n<%s>%s %s %s%s"%(namelist,log,inputfile,inputfile,self.extension))
-            if stat==0:
-                print("NetCDF output written to %s%s; log written to %s"%(inputfile,self.extension,log))
-                self.recursecheck=False
-                return 1
+        #if self.burn7:
+            #stat=os.system("./burn7.x -n<%s>%s %s %s%s"%(namelist,log,inputfile,inputfile,self.extension))
+            #if stat==0:
+                #print("NetCDF output written to %s%s; log written to %s"%(inputfile,self.extension,log))
+                #self.recursecheck=False
+                #return 1
+            #else:
+                #if crashifbroken:
+                    #if not self.recursecheck:
+                        #if self.integritycheck("%s%s"%(inputfile,self.extension)):
+                            #self.recursecheck=True
+                            #print("burn7 threw some errors; may want to check %s"%log)
+                        #else:
+                            #raise RuntimeError("Error writing output to %s%s; "%(inputfile,self.extension) +
+                                                #"log written to %s"%log)
+                    #else:
+                        #raise RuntimeError("An error was encountered, likely with the postprocessor. ExoPlaSim was unable to investigate further due to a recursion trap.")
+                #else:
+                    #print("Error writing output to %s%s; log written to %s"%(inputfile,self.extension,log))
+                    #raise RuntimeError("Going to stop here just in case......")
+                #return 0
+        try:
+            if len(kwargs.keys())==0 and self._configuredpostprocessor[ftype]:
+                kwargs = self.postprocessorcfgs[ftype]
+            if variables is None and self._configuredpostprocessor[ftype]:
+                pyburn.postprocess(inputfile,inputfile+self.extensions[ftype],logfile=log,
+                                   radius=self.radius*6371220.0,
+                                   gravity=self.gravity,gascon=self.gascon,**kwargs)
             else:
-                if crashifbroken:
-                    if not self.recursecheck:
-                        if self.integritycheck("%s%s"%(inputfile,self.extension)):
-                            self.recursecheck=True
-                            print("burn7 threw some errors; may want to check %s"%log)
-                        else:
-                            raise RuntimeError("Error writing output to %s%s; "%(inputfile,self.extension) +
-                                                "log written to %s"%log)
+                if ftype!="regular":
+                    if "times" not in kwargs:
+                        kwargs["times"] = self.postprocessordefaults[ftype]["times"]
+                    if "timeaverage" not in kwargs:
+                        kwargs["timeaverage"] = self.postprocessordefaults[ftype]["timeaverage"]
+                    if "stdev" not in kwargs:
+                        kwargs["stdev"] = self.postprocessordefaults[ftype]["stdev"]
+                pyburn.postprocess(inputfile,inputfile+self.extension,logfile=log,namelist=namelist,
+                                   variables=variables,radius=self.radius*6371220.0,
+                                   gravity=self.gravity,gascon=self.gascon,**kwargs)
+            return 1
+        except Exception as e:
+            print(e)
+            if self._configuredpostprocessor[ftype]:
+                extension = self.extensions[ftype]
+            else:
+                extension = self.extension
+            if crashifbroken:
+                if not self.recursecheck:
+                    if self.integritycheck("%s%s"%(inputfile,extension)):
+                        self.recursecheck=True
+                        print("pyburn threw some errors; may want to check %s"%log)
                     else:
-                        raise RuntimeError("An error was encountered, likely with the postprocessor. ExoPlaSim was unable to investigate further due to a recursion trap.")
+                        raise RuntimeError("Error writing output to %s%s; "%(inputfile,extension) +
+                                            "log written to %s"%log)
                 else:
-                    print("Error writing output to %s%s; log written to %s"%(inputfile,self.extension,log))
-                    raise RuntimeError("Going to stop here just in case......")
-                return 0
-        else:
-            try:
-                if len(kwargs.keys())==0 and self._configuredpostprocessor[ftype]:
-                    kwargs = self.postprocessorcfgs[ftype]
-                if variables is None and self._configuredpostprocessor[ftype]:
-                    pyburn.postprocess(inputfile,inputfile+self.extensions[ftype],logfile=log,
-                                       radius=self.radius*6371220.0,
-                                       gravity=self.gravity,gascon=self.gascon,**kwargs)
-                else:
-                    if ftype!="regular":
-                        if "times" not in kwargs:
-                            kwargs["times"] = self.postprocessordefaults[ftype]["times"]
-                        if "timeaverage" not in kwargs:
-                            kwargs["timeaverage"] = self.postprocessordefaults[ftype]["timeaverage"]
-                        if "stdev" not in kwargs:
-                            kwargs["stdev"] = self.postprocessordefaults[ftype]["stdev"]
-                    pyburn.postprocess(inputfile,inputfile+self.extension,logfile=log,namelist=namelist,
-                                       variables=variables,radius=self.radius*6371220.0,
-                                       gravity=self.gravity,gascon=self.gascon,**kwargs)
-                return 1
-            except Exception as e:
-                print(e)
-                if self._configuredpostprocessor[ftype]:
-                    extension = self.extensions[ftype]
-                else:
-                    extension = self.extension
-                if crashifbroken:
-                    if not self.recursecheck:
-                        if self.integritycheck("%s%s"%(inputfile,extension)):
-                            self.recursecheck=True
-                            print("pyburn threw some errors; may want to check %s"%log)
-                        else:
-                            raise RuntimeError("Error writing output to %s%s; "%(inputfile,extension) +
-                                                "log written to %s"%log)
-                    else:
-                        raise RuntimeError("An error was encountered, likely with the postprocessor. ExoPlaSim was unable to investigate further due to a recursion trap.")
-                else:
-                    print("Error writing output to %s%s; log written to %s"%(inputfile,extension,log))
-                    raise RuntimeError("Going to stop here just in case......")
-                return 0
+                    raise RuntimeError("An error was encountered, likely with the postprocessor. ExoPlaSim was unable to investigate further due to a recursion trap.")
+            else:
+                print("Error writing output to %s%s; log written to %s"%(inputfile,extension,log))
+                raise RuntimeError("Going to stop here just in case......")
+            return 0
         
         
     def integritycheck(self,ncfile): #MUST pass an output archive that contains surface temperature

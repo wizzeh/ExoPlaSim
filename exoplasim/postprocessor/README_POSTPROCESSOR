@@ -1,3 +1,6 @@
+NOTE: BURN7 IS UNSUPPORTED IN THIS VERSION OF EXOPLASIM, AND IS DEPRECATED.
+IF YOU WISH TO USE BURN7, PLEASE INSTALL EXOPLASIM-LEGACY.
+
 How to compile the postprocessor
 ================================
 The postprocessor is a C++ program requiring the NetCDF C++ library
