@@ -38,8 +38,7 @@ OR::
     
 The first time you import the module and try to create a model
 after either installing or updating, ExoPlaSim will run a 
-configuration script, write the install directory into its 
-source code, and (if applicable) compile the burn7 NetCDF postprocessor.
+configuration script.
 
 Multiple output formats are supported by the built-in `pyburn`
 postprocessor. If you wish to use HDF5 or NetCDF output formats, you
@@ -58,18 +57,7 @@ OR::
 You may also configure and compile the model manually if you wish
 to not use the Python API, by entering the exoplasim/ directory
 and running first configure.sh, then compile.sh (compilation flags
-are shown by running ``./compile.sh -h``). The postprocessor and its
-libraries can be compiled by entering ``exoplasim/postprocessor/`` and
-running ``./build_init.sh``.
-
-burn7 compilation
------------------
-You must have NetCDF libraries available in the path to build burn7.
-The burn7 compilation process will build and compile a patched
-version of the NetCDF libraries necessary for burn7--burn7 makes
-use of features anachronistic to a particular version of NetCDF
-that no longer exists.
-
+are shown by running ``./compile.sh -h``). 
 
 PlaSim Documentation
 --------------------

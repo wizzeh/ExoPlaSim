@@ -64,7 +64,6 @@ Optional Requirements
 
 * netCDF4 (for netCDF support)
 * h5py (for HDF5 support)
-* NetCDF-C Library (for legacy ``burn7`` support)
     
 Installation
 ------------
@@ -96,7 +95,7 @@ OR::
 The first time you import the module and try to create a model
 after either installing or updating, ExoPlaSim will run a 
 configuration script, write the install directory into its 
-source code, and compile the `pyfft` library.
+source code, and compile the ``pyfft`` library.
 
 .. burn7 NetCDF postprocessor. You must 
 .. have NetCDF libraries available in the path when this happens.
