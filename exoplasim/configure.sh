@@ -1,5 +1,35 @@
 #!/bin/bash
 
+helptest=$(cat <<-END
+               EXOPLASIM CONFIGURATION SCRIPT
+               
+    Usage:
+        ./configure.sh -v 3.9
+    
+    Options:
+        -v:   Version of Python that will be used, with major and minor version numbers.
+        
+        -h:   Output this test
+END
+)
+
+pyversion=3
+while getopts "v:h" opt; do
+    case $opt in
+        v)
+            pyversion=$OPTARG
+            ;;
+        h)
+            echo "$helptext"
+            exit 0
+            ;;
+        \?)
+            pyversion=3
+            echo "No Python version specified; using default Python 3"
+            ;;
+    esac
+done
+
 rm -f *.x most_* F90_*
 
 # check for FORTRAN-90 compiler
@@ -318,12 +348,7 @@ make
 f2py2 -c -m --f90exec=$MOST_F90 --f90flags="-O3" pyfft2 pyfft.f90
 
 #Compile pyfft libraries for Python 3
-if [[ -z "$1" ]]
-then
-    f2py$1 -c -m --f90exec=$MOST_F90 --f90flags="-O3" pyfft pyfft.f90 && mv pyfft.cpython*.so pyfft.so
-else
-    f2py3 -c -m --f90exec=$MOST_F90 --f90flags="-O3" pyfft pyfft.f90 && mv pyfft.cpython*.so pyfft.so
-fi
+f2py$pyversion -c -m --f90exec=$MOST_F90 --f90flags="-O3" pyfft pyfft.f90 && mv pyfft.cpython*.so pyfft.so
     
 
 
