@@ -333,18 +333,3 @@ echo "   [ -e plasim_status ] && mv plasim_status \$RESTNAME     ">>plasim/run/m
 echo "   [ -e restart_snow ] && mv restart_snow \$SNOWNAME       ">>plasim/run/most_plasim_run
 echo "done                                                       ">>plasim/run/most_plasim_run
 
-
-
-
-if [ -e postprocessor/burn7.x ] 
-then
-  cp postprocessor/burn7.x plasim/run/
-  cp postprocessor/*.nl plasim/run/
-else
-  cd postprocessor
-  ./build_init.sh
-  [ ! -e burn7.x ] && exit 1
-  cd ../
-  cp postprocessor/burn7.x plasim/run/
-  cp postprocessor/*.nl plasim/run/
-fi

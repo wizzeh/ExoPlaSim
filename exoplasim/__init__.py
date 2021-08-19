@@ -207,7 +207,15 @@ class Model(object):
                 cwd = os.getcwd()
                 os.chdir(sourcedir)
                 os.system("touch firstrun")
-                os.system("./configure.sh -v %s"%(sys.version[0:3]))
+                if float(sys.version[:3])>=3.5 and float(sys.version[:3])<3.7:
+                    subprocess.run(["./configure.sh -v %s"%(sys.version[:3])],shell=True,check=True)
+                elif float(sys.version[:3])>=3.7:
+                    subprocess.run(["./configure.sh -v %s"%(sys.version[:3])],shell=True,check=True,
+                                   capture_output=True)
+                elif float(sys.version[:3])<3.5 and float(sys.version[:3])>=3.0:
+                    os.system("./configure.sh -v %s"%(sys.version[0:3]))
+                else:
+                    os.system("./configure.sh -v 3")
                 #if self.burn7:
                     #os.system("nc-config --version > ncversion.tmp")
                     #with open("ncversion.tmp","r") as ncftmpf:
