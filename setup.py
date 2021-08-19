@@ -3,7 +3,7 @@ import os
  
 setup(
     name='exoplasim',
-    version='3.0.0a14',
+    version='3.0.0a15',
     packages=['exoplasim',],
     zip_safe=False,
     install_requires=["numpy","matplotlib","scipy"],
