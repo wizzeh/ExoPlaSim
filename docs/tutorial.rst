@@ -4,6 +4,10 @@ ExoPlaSim Tutorial
 
 In this tutorial, we will model the habitable zone terrestrial planet TOI 700 d, and take a look at some of the data. This tutorial assumes that you have installed ExoPlaSim successfully, and have matplotlib installed.
 
+Additionally to this tutorial, an IPython notebook is included with ExoPlaSim; which demonstrates
+basic usage. It can be found in the ExoPlaSim installation directory,
+or `downloaded directly here. <https://raw.githubusercontent.com/alphaparrot/ExoPlaSim/master/exoplasim/exoplasim_tutorial.ipynb>`_
+
 Setting Up 
 ==========
 

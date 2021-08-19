@@ -80,6 +80,10 @@ To use the ExoPlaSim Python API, you must import the module, create a
 Model or one of its subclasses, call its configure method and/or modify
 method, and then run it.
 
+An IPython notebook is included with ExoPlaSim; which demonstrates
+basic usage. It can be found in the ExoPlaSim installation directory,
+or [downloaded directly here.](https://raw.githubusercontent.com/alphaparrot/ExoPlaSim/master/exoplasim/exoplasim_tutorial.ipynb)
+
 Basic example::
 
     import exoplasim as exo
