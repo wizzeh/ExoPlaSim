@@ -266,13 +266,14 @@ dbgs=""
 cp ../../most_precision_optionsx precisionargsx
 if [ "$prec" -gt 4 ]
 then
-    sed -i '1s/$/'$prec'/' precisionargsx
+    sed -i.bak '1s/$/'$prec'/' precisionargsx
+    rm -rf precisionargsx.bak
 else
     echo "">precisionargsx
 fi
 
-(($nopt)) && sed -i '3s/$/ '$optimization'/' compilerargs
-    
+(($nopt)) && sed -i.bak '3s/$/ '$optimization'/' compilerargs && rm -rf compilerargs.bak
+
 cat compilerargs $dbgs../bld/precisionargsx make_plasim > makefile
 
 echo "Writing makefile..."
