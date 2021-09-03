@@ -120,7 +120,7 @@
       call mpbcr(PEARTH)
       call mpbcr(VEARTH)
       call mpbcr(WMAX)
-      call mpbcr(nsupply)
+      call mpbci(nsupply)
       call mpbcr(psurf0)
       
       end subroutine carbonini

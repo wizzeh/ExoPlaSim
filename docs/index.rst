@@ -53,11 +53,18 @@ Requirements
 
 * Python (including development libraries, e.g. python-dev or python3.9-dev on Ubuntu--if using anaconda, these should already be included in your installation)
 * numpy
-* scipy (only needed for additional utilities)
+* scipy (only needed for additional utilities, postprocessor)
 * matplotlib (only needed for additional utilities)
-* GNU C (gcc/g++) and Fortran (gfortran) compilers (for Python utilities)
+* GNU C (gcc/g++) and Fortran (gfortran) compilers (development headers must be present)
 * (optionally) Other compilers whose use you prefer for the model itself
 * (optionally) MPI libraries for those compilers
+
+Compatibility
+*************
+
+* Linux (tested on Ubuntu 18.04, CentOS 6.10): **Yes**
+* Windows 10: May work with Windows Subsystem for Linux (WSL), testing in progress
+* Mac OS X: Yes, requires Xcode and developer tools, and `OpenMPI support requires that Fortran-compatible libraries be built. <https://www.open-mpi.org/faq/?category=osx#not-using-osx-bundled-ompi>`_ Apple M1 compatibility has not been tested.
 
 Optional Requirements
 ---------------------

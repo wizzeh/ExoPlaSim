@@ -34,6 +34,13 @@ Requirements
 -   netCDF4 (optional)
 -   h5py (optional)
 
+Compatibility
+*************
+
+-   Linux (tested on Ubuntu 18.04, CentOS 6.10): **Yes**
+-   Windows 10: May work with Windows Subsystem for Linux (WSL), testing in progress
+-   Mac OS X: Yes, requires Xcode and developer tools, and [OpenMPI support requires that Fortran-compatible libraries be built. ](<https://www.open-mpi.org/faq/?category=osx#not-using-osx-bundled-ompi>) Apple M1 compatibility has not been tested.
+
 Installation
 ------------
 
