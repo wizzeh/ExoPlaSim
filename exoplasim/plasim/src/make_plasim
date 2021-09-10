@@ -36,7 +36,7 @@ plasim.x:	$(OBJ)
 specblock.o:    specblock.f90
 resmod.o:	resmod.f90
 plasimmod.o:	plasimmod.f90 resmod.o
-carbonmod.o:	carbonmod.f90 plasimmod.o
+carbonmod.o:	carbonmod.f90 radmod.o plasimmod.o
 hurricanemod.o: hurricanemod.f90 plasimmod.o
 ${UTILMOD}.o:	${UTILMOD}.f90 plasimmod.o carbonmod.o
 plasim.o:	plasim.f90 plasimmod.o
@@ -44,13 +44,13 @@ ${FFTMOD}.o:	${FFTMOD}.f90
 ${MPIMOD}.o:	${MPIMOD}.f90 plasimmod.o
 ${RAINMOD}.o:	${RAINMOD}.f90 plasimmod.o
 ${VEGMOD}.o:	${VEGMOD}.f90 ${LANDMOD}.o
-${LANDMOD}.o:	${LANDMOD}.f90 plasimmod.o
+${LANDMOD}.o:	${LANDMOD}.f90 radmod.o plasimmod.o
 glaciermod.o:	glaciermod.f90 plasimmod.o
 ${PLAMOD}.o:	${PLAMOD}.f90 radmod.o
 calmod.o:	calmod.f90 plasimmod.o
 gaussmod.o:	gaussmod.f90
 legmod.o:	legmod.f90 plasimmod.o
-outmod.o:	outmod.f90 glaciermod.o plasimmod.o carbonmod.o hurricanemod.o
+outmod.o:	outmod.f90 radmod.o glaciermod.o plasimmod.o carbonmod.o hurricanemod.o
 miscmod.o:	miscmod.f90 plasimmod.o
 fluxmod.o:	fluxmod.f90 plasimmod.o
 radmod.o:	radmod.f90 plasimmod.o specblock.o
