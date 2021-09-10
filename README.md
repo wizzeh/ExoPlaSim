@@ -38,7 +38,7 @@ Compatibility
 *************
 
 -   Linux (tested on Ubuntu 18.04, CentOS 6.10): **Yes**
--   Windows 10: May work with Windows Subsystem for Linux (WSL), testing in progress
+-   Windows 10: Yes, via Windows Subsystem for Linux
 -   Mac OS X: Yes, requires Xcode and developer tools, and [OpenMPI support requires that Fortran-compatible libraries be built. ](<https://www.open-mpi.org/faq/?category=osx#not-using-osx-bundled-ompi>) Tested on Mac OS X Catalina; later versions and Apple M1 compatibility have not been tested.
 
 **New in 3.0:**
