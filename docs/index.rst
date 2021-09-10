@@ -76,7 +76,7 @@ Optional Requirements
 ---------------
 
 * ExoPlaSim no longer depends on X11 libraries for installation and compilation!
-* Revamped `postprocessor<postprocessor.html>`_ no longer depends on NetCDF-C libraries, and supports additional output formats (including netCDF, HDF5, NumPy archives, and archives of CSV files).
+* Revamped `postprocessor <postprocessor.html>`_ no longer depends on NetCDF-C libraries, and supports additional output formats (including netCDF, HDF5, NumPy archives, and archives of CSV files).
 * GCC and gfortran support through GCC 10.
 * Improved cross-platform compatibility
 * Numerous bugfixes
