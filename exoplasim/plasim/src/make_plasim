@@ -15,7 +15,6 @@
 # MOST_F90_OPTS=-O  # FORTRAN options
 # MOST_CC=cc        # name of the C compiler for GUI
 # MOST_CC_OPTS=-O   # C options
-# MOST_XLIB="-L/usr/lib64" # path to Xlib
 
 # fftmod is faster than fft991mod, but fft991mod supports
 # more resolutions, e.g. T63 and T106

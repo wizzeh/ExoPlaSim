@@ -115,34 +115,34 @@ else
    exit 1
 fi
 
-
-#check for Xlib
-  if [ -e "/usr/X11/lib64/libX11.so" ] ; then
-   XLIB_PATH="/usr/X11/lib64"
-   XINC_PATH="/usr/X11/lib64/include"
-elif [ -e "/usr/lib64/libX11.so" ] ; then
-   XLIB_PATH="/usr/lib64"
-   XINC_PATH="/usr/lib64/include"
-elif [ -e "/usr/X11/lib" ] ; then
-   XLIB_PATH="/usr/X11/lib"
-   XINC_PATH="/usr/X11/include"
-elif [ -e "/usr/lib/X11" ] ; then
-   XLIB_PATH="/usr/lib/X11"
-   XINC_PATH="/usr/lib/X11/include"
-elif [ -e "/opt/X11" ] ; then
-   XLIB_PATH="/opt/X11"
-   XINC_PATH="/opt/X11/include"
-fi
-if [ -n ${XLIB_PATH} ] ; then
-   echo "Found Xlib (X11)              at: $XLIB_PATH"
-   GUILIB="-L$XLIB_PATH -lX11"
-else
-   echo "**********************************************"
-   echo "* Didn't find Xlib (X11) at standard paths   *"
-   echo "* Hopefully the compiler will find it itself *"
-   echo "**********************************************"
-   GUILIB=" -lX11"
-fi
+# We no longer need Xlib
+# #check for Xlib
+#   if [ -e "/usr/X11/lib64/libX11.so" ] ; then
+#    XLIB_PATH="/usr/X11/lib64"
+#    XINC_PATH="/usr/X11/lib64/include"
+# elif [ -e "/usr/lib64/libX11.so" ] ; then
+#    XLIB_PATH="/usr/lib64"
+#    XINC_PATH="/usr/lib64/include"
+# elif [ -e "/usr/X11/lib" ] ; then
+#    XLIB_PATH="/usr/X11/lib"
+#    XINC_PATH="/usr/X11/include"
+# elif [ -e "/usr/lib/X11" ] ; then
+#    XLIB_PATH="/usr/lib/X11"
+#    XINC_PATH="/usr/lib/X11/include"
+# elif [ -e "/opt/X11" ] ; then
+#    XLIB_PATH="/opt/X11"
+#    XINC_PATH="/opt/X11/include"
+# fi
+# if [ -n ${XLIB_PATH} ] ; then
+#    echo "Found Xlib (X11)              at: $XLIB_PATH"
+#    GUILIB="-L$XLIB_PATH -lX11"
+# else
+#    echo "**********************************************"
+#    echo "* Didn't find Xlib (X11) at standard paths   *"
+#    echo "* Hopefully the compiler will find it itself *"
+#    echo "**********************************************"
+#    GUILIB=" -lX11"
+# fi
 
 #check for C compiler
 # put your favourite compiler in front if you have more than one
@@ -156,7 +156,8 @@ done
 if [ $MOST_CC != "NO_CC" ] ; then
    CC_PATH=`which $MOST_CC`
    echo >> most_compiler MOST_CC=$MOST_CC " # " $CC_PATH
-   echo >> most_compiler "MOST_CC_OPTS=-O3 -I" $XINC_PATH
+   echo >> most_compiler "MOST_CC_OPTS=-O3"
+# -I" $XINC_PATH
    echo "Found C compiler              at: $CC_PATH"
    if [ $MOST_CC = "suncc" ] ; then
       echo >> most_debug_options "MOST_CC_OPTS=-g -C -ftrap=common"
@@ -299,15 +300,16 @@ else
    echo >> most_compiler     LEGMOD=legsym
    echo >> most_compiler     LEGFAST=
 fi
-
-echo >> most_compiler     "GUILIB=$GUILIB"
-echo >> most_compiler_mpi "GUILIB=$GUILIB"
-echo >> most_compiler     "GUIMOD=guimod"
-echo >> most_compiler_mpi "GUIMOD=guimod"
-echo >> most_compiler     "PUMAX=pumax"
-echo >> most_compiler_mpi "PUMAX=pumax"
+# 
+# echo >> most_compiler     "GUILIB=$GUILIB"
+# echo >> most_compiler_mpi "GUILIB=$GUILIB"
+echo >> most_compiler     "GUIMOD=guimod_stub"
+echo >> most_compiler_mpi "GUIMOD=guimod_stub"
+echo >> most_compiler     "PUMAX=pumax_stub"
+echo >> most_compiler_mpi "PUMAX=pumax_stub"
 echo  > makefile "most.x: most.c"
-echo >> makefile "	$MOST_CC -o most.x most.c -I$XINC_PATH -lm $GUILIB"
+echo >> makefile "	$MOST_CC -o most.x most.c"
+#-I$XINC_PATH -lm $GUILIB"
 echo >> makefile "clean:"
 echo >> makefile "	rm -f *.o *.x F90* most_*"
 
