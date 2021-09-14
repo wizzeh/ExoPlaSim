@@ -112,7 +112,12 @@
               dglac(jhor) = 0.0
             endif
           enddo
+        else
+          do jhor=1,NHOR
+            if ((dglac(jhor) .gt. 0.0).and.(dsnowz(jhor) .eq. 0.0)) dsnowz(jhor)=glacelim
+          enddo
         endif
+        
           
         call mpgagp(zsnow,dsnowz,1)
         

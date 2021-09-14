@@ -1179,17 +1179,40 @@ class Model(object):
             #                                        self.modelname,self.modelname))
             newworkdir = os.getcwd()+"/"+self.modelname
         else:
-            outputs = sorted(glob.glob("%s/MOST*%s"%(self.workdir,self.extension)))
+            if self.extension==".npz" or self.extension==".npy":
+                metaoutputs = sorted(glob.glob("%s/MOST*metadata%s"%(self.workdir,self.extension)))
+                tmpoutputs = sorted(glob.glob("%s/MOST*%s"%(self.workdir,self.extension)))
+                outputs = sorted(list(set(tmpoutputs)-set(metaoutputs)))
+            else:
+                outputs = sorted(glob.glob("%s/MOST*%s"%(self.workdir,self.extension)))
             os.chdir(outputdir)
             os.system("cp %s %s%s"%(outputs[-1],self.modelname,self.extension))
+            if self.extension==".npz" or self.extension==".npy":
+                os.system("cp %s %s%s"%(metaoutputs[-1],self.modelname+"_metadata",self.extension))
             diags = sorted(glob.glob("%s/MOST*DIAG*"%self.workdir))
             os.system("cp %s %s.DIAG"%(diags[-1],self.modelname))
             if self.snapshots:
-                snps = sorted(glob.glob("%s/snapshots/*%s"%(self.workdir,self.extension)))
+                if self.extension==".npz" or self.extension==".npy":
+                    metasnps = sorted(glob.glob("%s/snapshots/*metadata%s"%(self.workdir,self.extension)))
+                    tmpsnps = sorted(glob.glob("%s/snapshots/*%s"%(self.workdir,self.extension)))
+                    snps = sorted(list(set(tmpsnps)-set(metasnps)))
+                else:
+                    snps = sorted(glob.glob("%s/snapshots/*%s"%(self.workdir,self.extension)))
                 os.system("cp %s %s_snapshot%s"%(snps[-1],self.modelname,self.extension))
+                if self.extension==".npz" or self.extension==".npy":
+                    os.system("cp %s %s_snapshot_metadata%s"%(metasnps[-1],self.modelname,
+                                                              self.extension))
             if self.highcadence["toggle"]:
-                hcs = sorted(glob.glob("%s/highcadence/MOST*%s"%(self.workdir,self.extension)))
+                if self.extension==".npz" or self.extension==".npy":
+                    metahcs = sorted(glob.glob("%s/highcadence/MOST*metadata%s"%(self.workdir,self.extension)))
+                    tmphcs = sorted(glob.glob("%s/highcadence/MOST*%s"%(self.workdir,self.extension)))
+                    hcs = sorted(list(set(tmphcs)-set(metahcs)))
+                else:
+                    hcs = sorted(glob.glob("%s/highcadence/MOST*%s"%(self.workdir,self.extension)))
                 os.system("cp %s %s_highcadence%s"%(hcs[-1],self.modelname,self.extension))
+                if self.extension==".npz" or self.extension==".npy":
+                    os.system("cp %s %s_highcadence_metadata%s"%(metahcs[-1],self.modelname,
+                                                              self.extension))
             if keeprestarts:
                 rsts = sorted(glob.glob("%s/MOST_REST*"%self.workdir))
                 os.system("cp %s %s_restart"%(rsts[-1],self.modelname))
