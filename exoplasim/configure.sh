@@ -308,11 +308,11 @@ echo >> most_compiler     "GUIMOD=guimod_stub"
 echo >> most_compiler_mpi "GUIMOD=guimod_stub"
 echo >> most_compiler     "PUMAX=pumax_stub"
 echo >> most_compiler_mpi "PUMAX=pumax_stub"
-echo  > makefile "most.x: most.c"
-echo >> makefile "	$MOST_CC -o most.x most.c"
-#-I$XINC_PATH -lm $GUILIB"
-echo >> makefile "clean:"
-echo >> makefile "	rm -f *.o *.x F90* most_*"
+# echo  > makefile "most.x: most.c"
+# echo >> makefile "	$MOST_CC -o most.x most.c"
+# #-I$XINC_PATH -lm $GUILIB"
+# echo >> makefile "clean:"
+# echo >> makefile "	rm -f *.o *.x F90* most_*"
 
 #create directories
 
@@ -345,7 +345,7 @@ make -e -f makecheck
 echo >> most_info.txt "FORTRAN Compiler: $MOST_F90"
 echo >> most_info.txt "C       Compiler: $MOST_CC"
 cat most_info.txt
-make
+# make
 
 #On Sunnyvale, the Python/NumPy stack was built with gcc/g++. Even if we would *like* to use 
 #Intel compilers, on this machine we can't. This is likely going to be true on most systems,
@@ -367,8 +367,8 @@ export CC=$oldcc
 export CXX=$oldcpp
 
 
-echo
-echo "configuration complete - run <most.x>"
-echo
+# echo
+# echo "configuration complete - run <most.x>"
+# echo
 #
 #end of configure.sh
