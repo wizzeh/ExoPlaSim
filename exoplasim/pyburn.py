@@ -3073,9 +3073,10 @@ def netcdf(rdataset,filename="most_output.nc",append=False,logfile=None):
         if "complex" in dims: #Complex dtype
             dims = dims[:-1]
             if not append:
+                lsd = max(int(round(abs(datavar[datavar!=0]).min()+0.5)),6) #get decimal place of smallest value
                 try:
                     variable = ncd.createVariable(key,complex64_t,dims,zlib=True,
-                                                  least_significant_digit=6)
+                                                  least_significant_digit=lsd)
                 except:
                     _log(logfile,meta)
                     raise
@@ -3087,8 +3088,9 @@ def netcdf(rdataset,filename="most_output.nc",append=False,logfile=None):
             variable[t0:t1,...] = data
         else:
             if not append:
+                lsd = max(int(round(abs(datavar[datavar!=0]).min()+0.5)),6) #get decimal place of smallest value
                 try:
-                    variable = ncd.createVariable(key,"f4",dims,zlib=True,least_significant_digit=6)
+                    variable = ncd.createVariable(key,"f4",dims,zlib=True,least_significant_digit=lsd)
                 except:
                     _log(logfile,meta)
                     raise
