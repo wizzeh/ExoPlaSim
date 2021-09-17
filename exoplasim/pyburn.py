@@ -3073,7 +3073,15 @@ def netcdf(rdataset,filename="most_output.nc",append=False,logfile=None):
         if "complex" in dims: #Complex dtype
             dims = dims[:-1]
             if not append:
-                lsd = max(int(round(abs(datavar[datavar!=0]).min()+0.5)),6) #get decimal place of smallest value
+                dvarmask = datavar[np.isfinite(datavar)]
+                dvarmask = dvarmask[dvarmask!=0]
+                if len(dvarmask)==0:
+                    lsd = None
+                else:
+                    lsd = max(int(round(abs(np.log10(abs(dvarmask).min()))+0.5))+6,6) #get decimal place of smallest value
+                    if abs(dvarmask).min()>=1.0:
+                        lsd=6
+                log(logfile,"%s Decimal precision: "%key,lsd)
                 try:
                     variable = ncd.createVariable(key,complex64_t,dims,zlib=True,
                                                   least_significant_digit=lsd)
@@ -3088,7 +3096,15 @@ def netcdf(rdataset,filename="most_output.nc",append=False,logfile=None):
             variable[t0:t1,...] = data
         else:
             if not append:
-                lsd = max(int(round(abs(datavar[datavar!=0]).min()+0.5)),6) #get decimal place of smallest value
+                dvarmask = datavar[np.isfinite(datavar)]
+                dvarmask = dvarmask[dvarmask!=0]
+                if len(dvarmask)==0:
+                    lsd = None
+                else:
+                    lsd = max(int(round(abs(np.log10(abs(dvarmask).min()))+0.5))+6,6) #get decimal place of smallest value
+                    if abs(dvarmask).min()>=1.0:
+                        lsd=6
+                log(logfile,"%s Decimal precision: "%key,lsd)
                 try:
                     variable = ncd.createVariable(key,"f4",dims,zlib=True,least_significant_digit=lsd)
                 except:
