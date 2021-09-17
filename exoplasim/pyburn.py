@@ -3081,7 +3081,7 @@ def netcdf(rdataset,filename="most_output.nc",append=False,logfile=None):
                     lsd = max(int(round(abs(np.log10(abs(dvarmask).min()))+0.5))+6,6) #get decimal place of smallest value
                     if abs(dvarmask).min()>=1.0:
                         lsd=6
-                log(logfile,"%s Decimal precision: "%key,lsd)
+                _log(logfile,"%s Decimal precision: "%key,lsd)
                 try:
                     variable = ncd.createVariable(key,complex64_t,dims,zlib=True,
                                                   least_significant_digit=lsd)
@@ -3104,7 +3104,7 @@ def netcdf(rdataset,filename="most_output.nc",append=False,logfile=None):
                     lsd = max(int(round(abs(np.log10(abs(dvarmask).min()))+0.5))+6,6) #get decimal place of smallest value
                     if abs(dvarmask).min()>=1.0:
                         lsd=6
-                log(logfile,"%s Decimal precision: "%key,lsd)
+                _log(logfile,"%s Decimal precision: "%key,lsd)
                 try:
                     variable = ncd.createVariable(key,"f4",dims,zlib=True,least_significant_digit=lsd)
                 except:
