@@ -38,7 +38,7 @@ Compatibility
 *************
 
 -   Linux (tested on Ubuntu 18.04, CentOS 6.10): **Yes**
--   Google Colaboratory: Yes
+-   Google Colaboratory: Yes (note that OpenMPI support on Colaboratory is limited due to automatic root privileges; look up how to run OpenMPI executables with root permissions and note that this is not recommended)
 -   Windows 10: Yes, via Windows Subsystem for Linux
 -   Mac OS X: Yes, requires Xcode and developer tools, and [OpenMPI support requires that Fortran-compatible libraries be built.](<https://www.open-mpi.org/faq/?category=osx#not-using-osx-bundled-ompi>) Tested on Mac OS X Catalina and Big Sur (with MacPorts, GCC10, OpenMPI, and Anaconda3), Apple M1 compatibility has not been tested.
 
