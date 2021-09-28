@@ -91,6 +91,9 @@ real, allocatable :: alitter(:)  ! litter production
 real, allocatable :: anogrow(:)  ! no growth allocation 
 real, allocatable :: anpp(:)     ! net primary production
 real, allocatable :: aresh(:)    ! heterotrophic respiration
+real, allocatable :: adlai(:)    ! leaf area index
+real, allocatable :: adcveg(:)   ! vegetative carbon
+real, allocatable :: adcsoil(:)  ! soil carbon
 
 real :: zalbsn =   0.           ! snow albedo
 
@@ -155,6 +158,9 @@ allocate(alitter(NHOR)) ; alitter(:) = 0.0      ! litter production
 allocate(anogrow(NHOR)) ; anogrow(:) = 0.0      ! no growth allocation 
 allocate(anpp(NHOR))    ; anpp(:)    = 0.0      ! net primary production
 allocate(aresh(NHOR))   ; aresh(:)   = 0.0      ! heterotrophic respiration
+allocate(adlai(NHOR))   ; adlai(:)   = 0.0      ! leaf area index 
+allocate(adcveg(NHOR))  ; adcveg(:)  = 0.0      ! vegetative carbon
+allocate(adcsoil(NHOR)) ; adcsoil(:) = 0.0      ! soil carbon
 
 call mpsurfgp('dagg'    ,dagg    ,NHOR,1)
 call mpsurfgp('dsc'     ,dsc     ,NHOR,1)
@@ -173,6 +179,9 @@ else ! read variables from restart file
    call mpgetgp('aresh'  ,aresh  ,NHOR,1)
    call mpgetgp('dcsoil' ,dcsoil ,NHOR,1)
    call mpgetgp('dcveg'  ,dcveg  ,NHOR,1)
+   call mpgetgp('adcsoil' ,adcsoil ,NHOR,1)
+   call mpgetgp('adcveg'  ,adcveg  ,NHOR,1)
+   call mpgetgp('adlai'   ,adlai   ,NHOR,1)
 endif ! (nrestart == 0)
 return
 end subroutine vegini
@@ -187,6 +196,9 @@ use vegmod
 implicit none
 real :: zfac
 
+! We don't need to do the low-io switch here, because this only gets called when writegp gets called,
+! and the default is to write time-averaged data. We will create a separate vegsnapout routine for 
+! non-lowio, snapshot, high-cadence writes
 zfac = 1.0 / naccuout
 
 ! scale accumulated output variables
@@ -198,17 +210,20 @@ alitter(:) = alitter(:) * zfac
 anogrow(:) = anogrow(:) * zfac
 anpp(:)    = anpp(:)    * zfac
 aresh(:)   = aresh(:)   * zfac
+adlai(:)   = adlai(:)   * zfac
+adcveg(:)  = adcveg(:)  * zfac
+adcsoil(:) = adcsoil(:) * zfac
 
 ! write output variables
 
-call writegp(40,dlai   ,200,0) ! leaf area index
+call writegp(40,adlai  ,299,0) ! leaf area index
 
 call writegp(40,agpp   ,300,0) ! gross primary production
 call writegp(40,anpp   ,301,0) ! net primary production
 call writegp(40,agppl  ,302,0) ! light limited GPP 
 call writegp(40,agppw  ,303,0) ! water limited GPP
-call writegp(40,dcveg  ,304,0) ! vegetation carbon
-call writegp(40,dcsoil ,305,0) ! soil carbon
+call writegp(40,adcveg ,304,0) ! vegetation carbon
+call writegp(40,adcsoil,305,0) ! soil carbon
 call writegp(40,anogrow,306,0) ! no growth allocation 
 call writegp(40,aresh  ,307,0) ! heterotrophic respiration
 call writegp(40,alitter,308,0) ! litter production
@@ -222,10 +237,40 @@ alitter(:) = 0.0
 anogrow(:) = 0.0
 anpp(:)    = 0.0
 aresh(:)   = 0.0
+adlai(:)   = 0.0
+adcveg(:)  = 0.0
+adcsoil(:) = 0.0
 
 return
 end subroutine vegout
 
+!========!
+! VEGSNAPOUT !
+!========!
+
+subroutine vegsnapout(kcode)
+use vegmod
+implicit none
+integer kcode
+
+
+! write output variables
+
+call writegp(kcode,dlai  ,299,0) ! leaf area index
+
+call writegp(kcode,dgpp   ,300,0) ! gross primary production
+call writegp(kcode,dnpp   ,301,0) ! net primary production
+call writegp(kcode,dgppl  ,302,0) ! light limited GPP 
+call writegp(kcode,dgppw  ,303,0) ! water limited GPP
+call writegp(kcode,dcveg ,304,0) ! vegetation carbon
+call writegp(kcode,dcsoil,305,0) ! soil carbon
+call writegp(kcode,dnogrow,306,0) ! no growth allocation 
+call writegp(kcode,dresh  ,307,0) ! heterotrophic respiration
+call writegp(kcode,dlitter,308,0) ! litter production
+
+
+return
+end subroutine vegsnapout
 
 !=========!
 ! VEGSTOP !
@@ -244,6 +289,9 @@ call mpputgp('anpp'   ,anpp   ,NHOR,1)
 call mpputgp('aresh'  ,aresh  ,NHOR,1)
 call mpputgp('dcsoil' ,dcsoil ,NHOR,1)
 call mpputgp('dcveg'  ,dcveg  ,NHOR,1)
+call mpputgp('adcsoil' ,adcsoil ,NHOR,1)
+call mpputgp('adcveg'  ,adcveg  ,NHOR,1)
+call mpputgp('adlai'   ,adlai   ,NHOR,1)
 
 return
 end subroutine vegstop
@@ -370,6 +418,11 @@ do jhor = 1 , NHOR
     endif
 
     ! derivation of land surface parameters
+    
+    !We will need to adapt this for input spectra. Something to consider would be using the Qntenna code
+    !by Trevor Arp and Nathaniel Gabor (Arp, et al 2020) to pre-compute the absorbance spectrum of 
+    !vegetation for a given stellar spectrum. It's a toy model, but it's a pretty insightful one, and
+    !the vegetation model here is sort of a toy model too.
 
     dlai(jhor)  = -log(1.0 - zveg)/cveg_k
     zvz0  = dmr(jhor) * zforest+vz0_min*(1.0-zforest)
@@ -398,6 +451,8 @@ do jhor = 1 , NHOR
        drhs(jhor)    = zvrhs
        dalb(jhor)    = zvalb
        dforest(jhor) = zforest
+       !!! TODO: CO2 coupling--both local as surface source/sinks and global source/sinks
+       ! CO2 flux per dt is area_integral((dresh - dnpp)*dt*mass_conversion)
     endif
 
   ! accumulate output variables
@@ -409,6 +464,19 @@ do jhor = 1 , NHOR
   anogrow(jhor) = anogrow(jhor) + znogrow
   anpp(jhor)    = anpp(jhor)    + znpp
   aresh(jhor)   = aresh(jhor)   + zres
+  adlai(jhor)   = adlai(jhor)   + dlai(jhor)
+  adcveg(jhor)  = adcveg(jhor)  + dcveg(jhor)
+  adcsoil(jhor)  = adcsoil(jhor)  + dcsoil(jhor)
+  
+  ! non-accumulated output variables
+  
+  dgpp(jhor)    = zgpp
+  dgppl(jhor)   = zgppl
+  dgppw(jhor)   = zgppw
+  dlitter(jhor) = zlitter
+  dnogrow(jhor) = znogrow
+  dnpp(jhor)    = znpp
+  dresh(jhor)   = zres
 
   endif ! (dls(jhor) > 0.0 .and. dglac(jhor) < 0.9)
 enddo ! jhor

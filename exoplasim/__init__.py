@@ -1404,7 +1404,9 @@ class Model(object):
             qdiffusion=None,tdiffusion=None,zdiffusion=None,ddiffusion=None,
             diffusionpower=None,erosionsupplylimit=None,outgassing=50.0,snowicealbedo=None,
             twobandalbedo=False,maxsnow=None,soilalbedo=None,oceanalbedo=None,
-            oceanzenith="ECHAM-3",wetsoil=False,soilwatercap=None,aquaplanet=False,
+            oceanzenith="ECHAM-3",wetsoil=False,soilwatercap=None,vegetation=False,
+            vegaccel=1,nforestgrowth=1.0,initgrowth=0.5,initstomcond=1.0,initrough=2.0,
+            initsoilcarbon=0.0,initplantcarbon=0.0,aquaplanet=False,
             desertplanet=False,soilsaturation=None,drycore=False,ozone=True,
             cpsoil=None,soildepth=1.0,mldepth=50.0,tlcontrast=0.0,desync=0.0,
             writefrequency=None,modeltop=None,stratosphere=False,top_restoretime=None,
@@ -1668,6 +1670,24 @@ class Model(object):
               If set, the maximum CO2 weathering rate per year permitted by
               erosion, in ubars/year. This is not simply a hard cutoff, but follows
               Foley 2015 so high weathering below the cutoff is also reduced.
+       Vegetation
+          vegetation : bool or int, optional
+              Can be True/False, or 0/1/2. If True or 1, then diagnostic vegetation is turned on.
+              If 2, then coupled vegetation is turned on. Vegetation is computed via the SimBA module.
+          vegaccel : int, optional
+              Integer factor by which to accelerate vegetation growth
+          nforestgrowth: float, optional
+              Biomass growth
+          initgrowth : float, optional
+              Initial above-ground growth
+          initstomcond : float, optional
+              Initial stomatal conductance
+          initrough : float, optional
+              Initial vegetative surface roughness
+          initsoilcarbon : float, optional
+              Initial soil carbon content
+          initplantcarbon : float, optional
+              Initial vegetative carbon content
         
     See [1]_ for details on the implementation of supply-limited weathering.
         
@@ -1959,6 +1979,28 @@ References
         self.erosionsupplylimit=erosionsupplylimit
         self._edit_namelist("carbonmod_namelist","VOLCANCO2",str(outgassing))
         self.outgassing=outgassing
+        
+        self.vegetation=vegetation
+        if self.vegetation is False:
+            self.vegetation = 0
+        elif self.vegetation is True:
+            self.vegetation = 1
+        self._edit_namelist("plasim_namelist","NVEG",str(self.vegetation)
+        self.vegaccel=vegaccel
+        self.nforestgrowth=nforestgrowth
+        self.initgrowth=initgrowth
+        self.initstomcond=initstomcond
+        self.initrough=initrough
+        self.initsoilcarbon=initsoilcarbon
+        self.initplantcarbon=initplantcarbon
+        
+        self._edit_namelist("vegmod_namelist","NCVEG"   ,self.vegaccel       )
+        self._edit_namelist("vegmod_namelist","FORGROW" ,self.nforestgrowth  )
+        self._edit_namelist("vegmod_namelist","RINIDAGG",self.initgrowth     )
+        self._edit_namelist("vegmod_namelist","RINIDSC" ,self.initstomcond   )
+        self._edit_namelist("vegmod_namelist","RINIDMR" ,self.initrough      )
+        self._edit_namelist("vegmod_namelist","RINISOIL",self.initsoilcarbon )
+        self._edit_namelist("vegmod_namelist","RINIVEG" ,self.initplantcarbon)
         
         if physicsfilter:
             vals = physicsfilter.split("|")
@@ -2308,6 +2350,25 @@ References
             desync = float(cfg[73])
         except:
             desync = 0.0
+            
+        try:
+            vegetation      =   int(cfg[74])
+            vegaccel        =   int(cfg[75])
+            nforestgrowth   = float(cfg[76])
+            initgrowth      = float(cfg[77])
+            initstomcond    = float(cfg[78])
+            initrough       = float(cfg[79])
+            initsoilcarbon  = float(cfg[80])
+            initplantcarbon = float(cfg[81])
+        except:
+            vegetation      = 0
+            vegaccel        = 1
+            nforestgrowth   = 1.0
+            initgrowth      = 0.5
+            initstomcond    = 1.0
+            initrough       = 2.0
+            initsoilcarbon  = 0.0
+            initplantcarbon = 0.0
         
         self.configure(noutput=noutput,flux=flux,startemp=startemp,starspec=starspec,
                     gascon=gascon,pressure=pressure,pressurebroaden=pressurebroaden,
@@ -2325,6 +2386,9 @@ References
                     snowicealbedo=snowicealbedo,twobandalbedo=twobandalbedo,maxsnow=maxsnow,
                     soilalbedo=soilalbedo,oceanalbedo=oceanalbedo,oceanzenith=oceanzenith,
                     wetsoil=wetsoil,soilwatercap=soilwatercap,aquaplanet=aquaplanet,
+                    vegetation=vegetation,vegaccel=vegaccel,nforestgrowth=nforestgrowth,
+                    initgrowth=initgrowth,initstomcond=initstomcond,initrough=initrough,
+                    initsoilcarbon=initsoilcarbon,initplantcarbon=initplantcarbon,
                     desertplanet=desertplanet,soilsaturation=soilsaturation,
                     drycore=drycore,ozone=ozone,cpsoil=cpsoil,soildepth=soildepth,
                     mldepth=mldepth,writefrequency=writefrequency,modeltop=modeltop,
@@ -2707,6 +2771,37 @@ References
                 else:
                     self._edit_namelist("landmod_namelist","NWATCINI","0")
                     self._rm_namelist_param("landmod_namelist","DWATCINI")
+                    
+            if key=="vegetation":
+                self.vegetation=value
+                if self.vegetation is False:
+                    self.vegetation = 0
+                elif self.vegetation is True:
+                    self.vegetation = 1
+                self._edit_namelist("plasim_namelist","NVEG",str(self.vegetation)
+            
+            if key=="vegaccel":
+                self.vegaccel=value
+                self._edit_namelist("vegmod_namelist","NCVEG"   ,self.vegaccel       )
+            if key=="nforestgrowth":
+                self.nforestgrowth=value
+                self._edit_namelist("vegmod_namelist","FORGROW" ,self.nforestgrowth  )
+            if key=="initgrowth":
+                self.initgrowth=value
+                self._edit_namelist("vegmod_namelist","RINIDAGG",self.initgrowth     )
+            if key=="initstomcond":
+                self.initstomcond=value
+                self._edit_namelist("vegmod_namelist","RINIDSC" ,self.initstomcond   )
+            if key=="initrough":
+                self.initrough=value
+                self._edit_namelist("vegmod_namelist","RINIDMR" ,self.initrough      )
+            if key=="initsoilcarbon":
+                self.initsoilcarbon=value
+                self._edit_namelist("vegmod_namelist","RINISOIL",self.initsoilcarbon )
+            if key=="initplantcarbon":
+                self.initplantcarbon=value
+                self._edit_namelist("vegmod_namelist","RINIVEG" ,self.initplantcarbon)
+            
             if key=="desertplanet":
                 self.desertplanet=value
                 if self.desertplanet:
@@ -3099,6 +3194,14 @@ References
         cfg.append(str(self.top_restoretime))
         cfg.append(str(self.runsteps))
         cfg.append(str(self.desync))
+        cfg.append(str(self.vegetation))
+        cfg.append(str(self.vegaccel       ))
+        cfg.append(str(self.nforestgrowth  ))
+        cfg.append(str(self.initgrowth     ))
+        cfg.append(str(self.initstomcond   ))
+        cfg.append(str(self.initrough      ))
+        cfg.append(str(self.initsoilcarbon ))
+        cfg.append(str(self.initplantcarbon))
         
         print("Writing configuration....\n"+"\n".join(cfg))
         print("Writing to %s...."%filename)

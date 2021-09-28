@@ -692,7 +692,7 @@
 !       * forest cover *
 !       ****************
        
-        call writegp(40,dforest,212,0)
+        call writegp(40,dforest,298,0)
        
       else
       
@@ -727,7 +727,7 @@
 !       ****************
        
         aadforest(:) = aadforest(:) / real(naccuout)
-        call writegp(40,dforest,212,0)
+        call writegp(40,aadforest,298,0)
       
       endif
        
@@ -779,7 +779,13 @@
 !     *********************
 
       
-      if (nveg > 0) call vegout
+      if (nveg > 0) then
+        if (nlowio .eq. 0) then
+          call vegsnapout(40)
+        else
+          call vegout
+        endif
+      endif
 
 !     ***********************
 !     * Ozone concentration *
@@ -815,14 +821,14 @@
 !       * glacier elevation *
 !       *********************
        
-        call writegp(40,glacieroro,301,0)
+        call writegp(40,glacieroro,268,0)
        
         
 !       *********************
 !       *    net elevation  *
 !       *********************
         netoro(:) = groundoro(:) + glacieroro(:)
-        call writegp(40,netoro,302,0)
+        call writegp(40,netoro,269,0)
         
       else
 !       ********************
@@ -837,14 +843,14 @@
 !       *********************
        
         aaglacieroro(:) = aaglacieroro(:) / real(naccuout)
-        call writegp(40,aaglacieroro,301,0)
+        call writegp(40,aaglacieroro,268,0)
        
         
 !       *********************
 !       *    net elevation  *
 !       *********************
         netoro(:) = aagroundoro(:) + aaglacieroro(:)
-        call writegp(40,netoro,302,0)
+        call writegp(40,netoro,269,0)
       
       endif
        
@@ -1425,7 +1431,7 @@
 !       * forest cover *
 !       ****************
        
-        call writegp(140,dforest,212,0)
+        call writegp(140,dforest,298,0)
        
       
        
@@ -1460,12 +1466,13 @@
 
       call writegp(140,dglac,232,0)
         
+        
 !     *********************
 !     ***   S I M B A   ***
 !     *********************
 
       
-      if (nveg > 0) call vegout
+      if (nveg > 0) call vegsnapout(140)
 
 !     ***********************
 !     * Ozone concentration *
@@ -1492,14 +1499,14 @@
 !       * glacier elevation *
 !       *********************
        
-        call writegp(140,glacieroro,301,0)
+        call writegp(140,glacieroro,268,0)
        
         
 !       *********************
 !       *    net elevation  *
 !       *********************
         netoro(:) = groundoro(:) + glacieroro(:)
-        call writegp(140,netoro,302,0)
+        call writegp(140,netoro,269,0)
         
        
 !     ********************
@@ -1816,7 +1823,7 @@
 !       * forest cover *
 !       ****************
        
-        call writegp(kunit,dforest,212,0)
+        call writegp(kunit,dforest,298,0)
        
       
        
@@ -1851,12 +1858,13 @@
 
       call writegp(kunit,dglac,232,0)
         
+
 !     *********************
 !     ***   S I M B A   ***
 !     *********************
 
       
-      if (nveg > 0) call vegout
+      if (nveg > 0) call vegsnapout(kunit)
 
 !     ***********************
 !     * Ozone concentration *
@@ -1883,14 +1891,14 @@
 !       * glacier elevation *
 !       *********************
        
-        call writegp(kunit,glacieroro,301,0)
+        call writegp(kunit,glacieroro,268,0)
        
         
 !       *********************
 !       *    net elevation  *
 !       *********************
         netoro(:) = groundoro(:) + glacieroro(:)
-        call writegp(kunit,netoro,302,0)
+        call writegp(kunit,netoro,269,0)
         
        
 !     ********************
