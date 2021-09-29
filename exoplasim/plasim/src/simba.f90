@@ -326,8 +326,12 @@ implicit none
 
 cveg_e = atan(cveg_d) ! forest cover
 cveg_g = atan(-cveg_f)   ! soil cover
-zbeta  = max(0.,1.+co2_sens*log((co2-co2_comp)/(co2_ref-co2_comp)))
-
+if (co2 .lt. 1.0e-8) then !No CO2 limit
+  zbeta = 0.0
+else
+  zbeta  = max(0.,1.+co2_sens*log((co2-co2_comp)/(co2_ref-co2_comp)))
+endif
+  
 ! Following plasim arrays are used but not modified
 ! -------------------------------------------------
 ! dwatc(:) = soil wetness [m]
@@ -377,7 +381,11 @@ do jhor = 1 , NHOR
     ! co2    : initialized with 360.0 [ppmv] - member of namelist $RADPAR
     ! co2conv:                               - member of namelist $LANDPAR
 
-    zgppw = co2conv * dp(jhor) * zveg * (-devap(jhor)) / zvpd * (0.3 * co2)
+    if (co2 .lt. 1.0e-8) then !In limit of no CO2 there's no growth
+      zgppw = 0.
+    else
+      zgppw = co2conv * dp(jhor) * zveg * (-devap(jhor)) / zvpd * (0.3 * co2)
+    endif
     zgppw = min(1.0,max(0.0,zgppw)) ! limit to range (0..1)
 
     ! combine light & water limitations (eq. 6.1 PlaSim RM)

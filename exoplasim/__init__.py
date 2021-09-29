@@ -1874,7 +1874,7 @@ References
             if pressure != self.pressure:  #User has specified a different pressure than sum of gas pressures
                 self.pressure = pressure
         
-        self.CO2ppmv = 0.0
+        self.CO2ppmv = 300.0
         if 'pCO2' in self.pgases:
             self.CO2ppmv = self.pgases['pCO2']/self.pressure * 1.0e6 #ppmv
         
