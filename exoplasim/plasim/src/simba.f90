@@ -95,6 +95,16 @@ real, allocatable :: adlai(:)    ! leaf area index
 real, allocatable :: adcveg(:)   ! vegetative carbon
 real, allocatable :: adcsoil(:)  ! soil carbon
 
+! Non-accumulated output variables
+
+real, allocatable :: dgpp(:)      ! gross primary production
+real, allocatable :: dgppl(:)     ! light limited GPP
+real, allocatable :: dgppw(:)     ! water limited GPP
+real, allocatable :: dlitter(:)   ! litter production
+real, allocatable :: dnogrow(:)   ! no growth allocation 
+real, allocatable :: dnpp(:)      ! net primary production
+real, allocatable :: dresh(:)     ! heterotrophic respiration
+
 real :: zalbsn =   0.           ! snow albedo
 
 !     * output of cumulative fluxes
@@ -151,6 +161,13 @@ allocate(dcveg(NHOR))   ; dcveg(:)   = riniveg  ! organic carbon stored in bioma
 allocate(dgrow(NHOR))   ; dgrow(:)   = forgrow  ! biomass growth parameter
 allocate(dlai(NHOR))    ; dlai(:)    = 0.0      ! leaf area index
 allocate(dvsoil(NHOR))  ; dvsoil(:)  = 0.0      ! soil cover
+allocate(dgpp(NHOR))    ; dgpp(:)    = 0.0      ! gross primary production
+allocate(dgppl(NHOR))   ; dgppl(:)   = 0.0      ! light limited GPP
+allocate(dgppw(NHOR))   ; dgppw(:)   = 0.0      ! water limited GPP
+allocate(dlitter(NHOR)) ; dlitter(:) = 0.0      ! litter production
+allocate(dnogrow(NHOR)) ; dnogrow(:) = 0.0      ! no growth allocation 
+allocate(dnpp(NHOR))    ; dnpp(:)    = 0.0      ! net primary production
+allocate(dresh(NHOR))   ; dresh(:)   = 0.0      ! heterotrophic respiration
 allocate(agpp(NHOR))    ; agpp(:)    = 0.0      ! gross primary production
 allocate(agppl(NHOR))   ; agppl(:)   = 0.0      ! light limited GPP
 allocate(agppw(NHOR))   ; agppw(:)   = 0.0      ! water limited GPP
