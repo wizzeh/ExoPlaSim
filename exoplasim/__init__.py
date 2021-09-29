@@ -13,6 +13,7 @@ import exoplasim.filesupport
 from exoplasim.filesupport import SUPPORTED
 import exoplasim.randomcontinents
 import exoplasim.makestellarspec
+import exoplasim.surfacespecs
 import platform
 
 smws = {'mH2': 2.01588,
