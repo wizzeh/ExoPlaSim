@@ -1995,13 +1995,13 @@ References
         self.initsoilcarbon=initsoilcarbon
         self.initplantcarbon=initplantcarbon
         
-        self._edit_namelist("vegmod_namelist","NCVEG"   ,self.vegaccel       )
-        self._edit_namelist("vegmod_namelist","FORGROW" ,self.nforestgrowth  )
-        self._edit_namelist("vegmod_namelist","RINIDAGG",self.initgrowth     )
-        self._edit_namelist("vegmod_namelist","RINIDSC" ,self.initstomcond   )
-        self._edit_namelist("vegmod_namelist","RINIDMR" ,self.initrough      )
-        self._edit_namelist("vegmod_namelist","RINISOIL",self.initsoilcarbon )
-        self._edit_namelist("vegmod_namelist","RINIVEG" ,self.initplantcarbon)
+        self._edit_namelist("vegmod_namelist","NCVEG"   ,str(self.vegaccel       ))
+        self._edit_namelist("vegmod_namelist","FORGROW" ,str(self.nforestgrowth  ))
+        self._edit_namelist("vegmod_namelist","RINIDAGG",str(self.initgrowth     ))
+        self._edit_namelist("vegmod_namelist","RINIDSC" ,str(self.initstomcond   ))
+        self._edit_namelist("vegmod_namelist","RINIDMR" ,str(self.initrough      ))
+        self._edit_namelist("vegmod_namelist","RINISOIL",str(self.initsoilcarbon ))
+        self._edit_namelist("vegmod_namelist","RINIVEG" ,str(self.initplantcarbon))
         
         if physicsfilter:
             vals = physicsfilter.split("|")
@@ -2783,25 +2783,25 @@ References
             
             if key=="vegaccel":
                 self.vegaccel=value
-                self._edit_namelist("vegmod_namelist","NCVEG"   ,self.vegaccel       )
+                self._edit_namelist("vegmod_namelist","NCVEG"   ,str(self.vegaccel       ))
             if key=="nforestgrowth":
                 self.nforestgrowth=value
-                self._edit_namelist("vegmod_namelist","FORGROW" ,self.nforestgrowth  )
+                self._edit_namelist("vegmod_namelist","FORGROW" ,str(self.nforestgrowth  ))
             if key=="initgrowth":
                 self.initgrowth=value
-                self._edit_namelist("vegmod_namelist","RINIDAGG",self.initgrowth     )
+                self._edit_namelist("vegmod_namelist","RINIDAGG",str(self.initgrowth     ))
             if key=="initstomcond":
                 self.initstomcond=value
-                self._edit_namelist("vegmod_namelist","RINIDSC" ,self.initstomcond   )
+                self._edit_namelist("vegmod_namelist","RINIDSC" ,str(self.initstomcond   ))
             if key=="initrough":
                 self.initrough=value
-                self._edit_namelist("vegmod_namelist","RINIDMR" ,self.initrough      )
+                self._edit_namelist("vegmod_namelist","RINIDMR" ,str(self.initrough      ))
             if key=="initsoilcarbon":
                 self.initsoilcarbon=value
-                self._edit_namelist("vegmod_namelist","RINISOIL",self.initsoilcarbon )
+                self._edit_namelist("vegmod_namelist","RINISOIL",str(self.initsoilcarbon ))
             if key=="initplantcarbon":
                 self.initplantcarbon=value
-                self._edit_namelist("vegmod_namelist","RINIVEG" ,self.initplantcarbon)
+                self._edit_namelist("vegmod_namelist","RINIVEG" ,str(self.initplantcarbon))
             
             if key=="desertplanet":
                 self.desertplanet=value
