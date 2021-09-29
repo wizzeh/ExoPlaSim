@@ -2779,7 +2779,7 @@ References
                     self.vegetation = 0
                 elif self.vegetation is True:
                     self.vegetation = 1
-                self._edit_namelist("plasim_namelist","NVEG",str(self.vegetation)
+                self._edit_namelist("plasim_namelist","NVEG",str(self.vegetation))
             
             if key=="vegaccel":
                 self.vegaccel=value
