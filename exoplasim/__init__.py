@@ -183,7 +183,8 @@ class Model(object):
         
         sourcedir = "/".join(__file__.split("/")[:-1]) #Get the absolute path for the module
         
-        if not os.path.isfile(sourcedir+"/firstrun"): #This means we haven't run yet, and have some post-install work to do
+        if not os.path.isfile(sourcedir+"/firstrun") or not os.path.isfile(sourcedir+"/most_compiler")\
+            or not os.path.isfile(sourcedir+"/most_compiler_mpi"): #This means we haven't run yet, and have some post-install work to do
             recompile=True
             #os.system('spth=$(python%s -c "import exoplasim as exo; print(exo.__path__)") && echo $spth>sourcepath'%sys.version[0])
             #with open("sourcepath","r") as spf:

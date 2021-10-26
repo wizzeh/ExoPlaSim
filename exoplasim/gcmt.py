@@ -349,6 +349,27 @@ class _Dataset:
         except: #We have a standard python dictionary for variables, so ignore the error quietly
             pass
 
+def xcolorbar(mappable,fontsize=None,ticksize=None,**kwargs):
+    import matplotlib.pyplot as plt
+    cbar = plt.colorbar(mappable,**kwargs)
+    if fontsize is not None and "label" in kwargs:
+        cbar.set_label(label=kwargs["label"],fontsize=fontsize)
+    if ticksize is not None:
+        cbar.ax.tick_params(labelsize=ticksize)
+    return cbar
+
+#import mpl_toolkits.basemap
+#class _xBasemap(mpl_toolkits.basemap.Basemap):
+    #def __init__(self,**kwargs):
+        #super(_xBasemap,self).__init__(**kwargs)
+    #def xcolorbar(self,mappable,fontsize=None,ticksize=None,**kwargs):
+        #cbar = super(_xBasemap,self).colorbar(mappable,**kwargs)
+        #if fontsize is not None and "label" in kwargs:
+            #cbar.set_label(label=kwargs["label"],fontsize=fontsize)
+        #if ticksize is not None:
+            #cbar.ax.tick_params(labelsize=ticksize)
+        #return cbar
+
 class DimensionError(Exception):
     pass
 
