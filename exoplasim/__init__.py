@@ -2049,7 +2049,7 @@ References
         self._edit_namelist("glacier_namelist","GLACELIM",str(self.glaciers["mindepth"]))
         self._edit_namelist("glacier_namelist","ICESHEETH",str(self.glaciers["initialh"]))
         if self.glaciers["initialh"]>0:
-            os.system("rm %s/*174.sra %s/*1740.sra %s/*210.sra %s/*232.sra"%([self.workdir,]*4))
+            os.system("rm %s/*174.sra %s/*1740.sra %s/*210.sra %s/*232.sra"%tuple([self.workdir,]*4))
         
         if type(snowicealbedo)!=type(None):
             alb = str(snowicealbedo)
@@ -2690,7 +2690,7 @@ References
                                     str(self.glaciers["initialh"]))
                 if self.glaciers["initialh"]>0:
                     os.system("rm %s/*174.sra %s/*1740.sra "+
-                            "%s/*210.sra %s/*232.sra"%([self.workdir,]*4))
+                            "%s/*210.sra %s/*232.sra"%tuple([self.workdir,]*4))
                 
             if key=="snowicealbedo":
                 self.snowicealbedo=value
