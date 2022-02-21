@@ -3440,9 +3440,13 @@ def hdf5(rdataset,filename="most_output.hdf5",append=False,logfile=None):
         hdfile.attrs["levp"] = np.array(levelp[1]).astype('S') #Store metadata
     if "time" not in hdfile:
         hdfile.create_dataset("time",data=time[0].astype('float32'),compression='gzip',
-                              compression_opts=9,shuffle=True,fletcher32=True)
+                              maxshape=(len(time[0]),),compression_opts=9,
+                              shuffle=True,fletcher32=True)
         hdfile.attrs["time"] = np.array(time[1]).astype('S') #Store metadata
-    
+    else:
+        hdfile["time"].resize((hdfile["time"].shape[0]+len(time[0])),axis=0)
+        hdfile["time"][-len(time[0]):] = time[0].astype("float32'")
+        
     for var in keyvars:
         if var not in hdfile:
             maxshape = [None,]

@@ -44,7 +44,7 @@
       real    :: aco3    = 0.08   ! parameter to define o3 profile
       real    :: bo3     = 20000. ! parameter to define o3 profile
       real    :: co3     = 5000.  ! parameter to define o3 profile
-      real    :: toffo3  = 90.    ! parameter to define o3 profile
+      real    :: toffo3  = 0.25    ! parameter to define o3 profile
       real    :: o3scale = 1.0    ! scale o3 concentration
       integer :: no3     = 1      ! switch for ozon (0=no,1=yes,2=datafile)
       integer :: nsol    = 1      ! switch for solang (1/0=yes/no)
@@ -87,8 +87,6 @@
 
       real :: gmu0(NHOR)                   ! cosine of solar zenit angle
       real :: gmu1(NHOR)                   ! cosine of solar zenit angle
-      real :: dqo3(NHOR,NLEV)        = 0.0 ! ozon concentration (kg/kg)
-      real :: dqco2(NHOR,NLEV)       = 0.0 ! co2 concentration (ppmv)
 !       real :: dtdtlwr(NHOR,NLEV)           ! lwr temperature tendencies (now in pumamod)
 !       real :: dtdtswr(NHOR,NLEV)           ! swr temperature tendencies (now in pumamod)
 
@@ -1441,7 +1439,7 @@
             jh2 = jlat * NLON     ! horizonatl index for end   of latitude
             jh1 = jh2  - NLON + 1 ! horizontal index for start of latitude
             za(jh1:jh2)=a0o3+a1o3*ABS(sid(jlat))                        &
-               +aco3*sid(jlat)*cos(TWOPI*(zcday-toffo3/365.25)) 
+               +aco3*sid(jlat)*cos(TWOPI*(zcday-toffo3)) 
          enddo ! jlat
 
          zconst  = exp(-bo3/co3)

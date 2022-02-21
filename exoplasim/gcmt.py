@@ -128,9 +128,12 @@ class _csvData(dict):
         self.filestem = "_".join(self.filetree[idx0].split("_")[:-1])
         self.extension = "."+self.filetree[idx0].split(".")[-1]
         self.permanent = {}
-        dimkeys = ['lat','lon','lev','levp','time']
+        dimkeys = ['lat','lon','lev','levp','time',"wvl"]
         for key in dimkeys:
-            self.permanent[key] = self.__getitem__(key,overridebuffer=True)
+            try:
+                self.permanent[key] = self.__getitem__(key,overridebuffer=True)
+            except:
+                pass
         super(_csvData,self).__init__(**kwargs)
         for key in self.filetree:
             super(_csvData,self).__setitem__(key,self.filetree[key])

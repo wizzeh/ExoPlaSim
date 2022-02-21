@@ -14,17 +14,10 @@ from exoplasim.filesupport import SUPPORTED
 import exoplasim.randomcontinents
 import exoplasim.makestellarspec
 import exoplasim.surfacespecs
+import exoplasim.constants
+import exoplasim.pRT
+from exoplasim.constants import *
 import platform
-
-smws = {'mH2': 2.01588,
-        'mHe': 4.002602,
-        'mN2': 28.0134,
-        'mO2': 31.9988,
-        'mCO2':44.01,
-        'mAr': 39.948,
-        'mNe': 20.1797,
-        'mKr': 83.798,
-        'mH2O':18.01528}
 
 gases_default = {'pH2': 0.0,
                 'pHe': 5.24e-6,
@@ -36,10 +29,6 @@ gases_default = {'pH2': 0.0,
                 'pKr': 1.14e-6,
                 'pH2O':0.01}
 
-MARS_GRAV   = 3.728
-MARS_RADIUS = 3400000.0
-MARS_RD     = 189.0
-MARS_MMW    = 43.991866
 
 def _noneparse(text,dtype):
     if text=="None" or text=="none":
@@ -176,6 +165,15 @@ class Model(object):
                                       "snapshot"    : {"times":None,"timeaverage":False,"stdev":False},
                                       "highcadence" : {"times":None,"timeaverage":False,"stdev":False}}
         self.postprocessorcfgs = {"regular":{},"snapshot":{},"highcadence":{}}
+        self.pRTopts = {}
+        for ftype in ['regular','snapshot','highcadence']:
+            self.pRTopts[ftype] = {"transit":False,
+                                   "image":False,
+                                   "h2o_linelist" : 'Exomol',
+                                   "cloudfunc":None,
+                                   "smooth":False,
+                                   "smoothweight": 0.95}
+                        
         self.crashtolerant = crashtolerant
         
         if self.extension not in pyburn.SUPPORTED:
@@ -880,7 +878,9 @@ class Model(object):
     def cfgpostprocessor(self,ftype="regular",
                          extension=".npz",namelist=None,variables=list(pyburn.ilibrary.keys()),
                          mode='grid',zonal=False, substellarlon=180.0, physfilter=False,
-                         timeaverage=True,stdev=False,times=12,interpolatetimes=True):
+                         timeaverage=True,stdev=False,times=12,interpolatetimes=True,
+                         transit=False,image=False,h2o_linelist='Exomol',cloudfunc=None,
+                         smooth=False,smoothweight=0.95):
         '''Configure postprocessor options for pyburn.
         
         Output format is determined by the file extension of outfile. Current supported formats are 
@@ -999,9 +999,15 @@ class Model(object):
                                          "stdev"            : stdev,
                                          "times"            : times,
                                          "interpolatetimes" : interpolatetimes}
+        self.pRTopts[ftype] =  {"transit":transit,
+                                "image":image,
+                                "h2o_linelist" : h2o_linelist,
+                                "cloudfunc":cloudfunc,
+                                "smooth":smooth,
+                                "smoothweight": smoothweight}
     
     def postprocess(self,inputfile,variables,ftype="regular",log="postprocess.log",
-                    crashifbroken=False,**kwargs):
+                    crashifbroken=False,transit=False,image=False,**kwargs):
         """    Produce NetCDF output from an input file, using a specified postprocessing namelist. 
 
         Parameters
@@ -1057,10 +1063,27 @@ class Model(object):
         try:
             if len(kwargs.keys())==0 and self._configuredpostprocessor[ftype]:
                 kwargs = self.postprocessorcfgs[ftype]
+            transit= False
+            image  = False
+            transit=self.pRTopts[ftype]['transit']
+            image  =self.pRTopts[ftype]['image']
+            pRTkwargs = dict(self.pRTopts[ftype])
+            del pRTkwargs['transit']
+            del pRTkwargs['image']
+            
             if variables is None and self._configuredpostprocessor[ftype]:
                 pyburn.postprocess(inputfile,inputfile+self.extensions[ftype],logfile=log,
                                    radius=self.radius,
                                    gravity=self.gravity,gascon=self.gascon,**kwargs)
+                times = self.inspect("time",snapshot=(ftype=="snapshot"),highcadence=(ftype=="highcadence"))
+                if transit:
+                    atm,transitoutput = self.transit(-1,times,snapshot=(ftype=="snapshot"),
+                                                     highcadence=(ftype=="highcadence'"),logfile=log,
+                                                     **pRTkwargs)
+                if image:
+                    atm,imageoutput = self.image(-1,times,obsv_lats,obsv_lons,snapshot=(ftype=="snapshot"),
+                                                     highcadence=(ftype=="highcadence'"),logfile=log,
+                                                     **pRTkwargs)
             else:
                 if ftype!="regular":
                     if "times" not in kwargs:
@@ -1072,6 +1095,16 @@ class Model(object):
                 pyburn.postprocess(inputfile,inputfile+self.extension,logfile=log,namelist=namelist,
                                    variables=variables,radius=self.radius,
                                    gravity=self.gravity,gascon=self.gascon,**kwargs)
+                times = self.inspect("time",snapshot=(ftype=="snapshot"),highcadence=(ftype=="highcadence"))
+                if transit:
+                    atm,transitoutput = self.transit(-1,times,snapshot=(ftype=="snapshot"),
+                                                     highcadence=(ftype=="highcadence'"),logfile=log,
+                                                     **pRTkwargs)
+                if image:
+                    atm,imageoutput = self.image(-1,times,obsv_lats,obsv_lons,snapshot=(ftype=="snapshot"),
+                                                     highcadence=(ftype=="highcadence'"),logfile=log,
+                                                     **pRTkwargs)
+                
             return 1
         except Exception as e:
             print(e)
@@ -1264,6 +1297,100 @@ class Model(object):
         else:
             raise RuntimeError("Output file %s not found."%(self.workdir+"/"+name))
     
+    def transit(self,year,times,snapshot=True,highcadence=False,h2o_linelist='Exomol',
+                num_cpus=1,cloudfunc=None,smooth=False,smoothweight=0.95,logfile=None):
+        
+        
+        if year<0:
+            #nfiles = len(glob.glob(self.workdir+"/"+pattern+"*%s"%self.extension))
+            #year = nfiles+year
+            year += self.currentyear #year=-1 should give the most recent year
+    
+        ncd = self.get(year,snapshot=snapshot,highcadence=highcadence)
+        
+        if snapshot and not highcadence:
+            name = "snapshots/MOST_SNAP_transit.%05d%s"%(year,self.extension)
+        elif highcadence and not snapshot:
+            name = "highcadence/MOST_HC_transit.%05d%s"%(year,self.extension)
+        else:
+            name = "MOST_transit.%05d%s"%(year,self.extension)
+            
+        gases_vmr = {}
+        if len(self.pgases)==0:
+            gases_vmr["CO2"] = self.CO2ppmv*1e-6
+            gases_vmr["N2"] = 1.0-gases_vmr['CO2']
+        else:
+            for gas in self.pgases:
+                gases_vmr[gas[1:]] = gas/self.pressure
+        if "H2" not in gases_vmr:
+            gases_vmr["H2"] = 0.0
+        if "He" not in gases_vmr:
+            gases_vmr["He"] = 0.0
+        if "O2" not in gases_vmr:
+            gases_vmr["O2"] = 0.0
+        
+        atm,wvl,spectra,coords,weights,avgspectra = pRT.transit(ncd,times,gases_vmr,gascon=self.gascon,
+                                                                gravity=self.gravity,rplanet=self.radius*6.371e3,
+                                                                h2o_lines=h2o_linelist,num_cpus=num_cpus,
+                                                                cloudfunc=cloudfunc,smooth=smooth,
+                                                                smoothweight=smoothweight,
+                                                                ozone=self.ozone,logfile=logfile,
+                                                                stepsperyear=self.stepsperyear)
+        
+        output = pRT.save(name,{"wvl":wvl,"time":times,"transits":spectra,
+                                "lat":coords[...,1],"lon":coords[...,0],"weights":weights,
+                                "spectra":avgspectra},
+                          logfile=logfile)
+        return atm,output
+    
+    def image(self,year,times,obsv_lats,obsv_lons,snapshot=True,highcadence=False,h2o_linelist='Exomol',
+              num_cpus=1,cloudfunc=None,smooth=False,smoothweight=0.95,logfile=None):
+        
+        if year<0:
+            #nfiles = len(glob.glob(self.workdir+"/"+pattern+"*%s"%self.extension))
+            #year = nfiles+year
+            year += self.currentyear #year=-1 should give the most recent year
+    
+        ncd = self.get(year,snapshot=snapshot,highcadence=highcadence)
+        
+        if snapshot and not highcadence:
+            name = "snapshots/MOST_SNAP_transit.%05d%s"%(year,self.extension)
+        elif highcadence and not snapshot:
+            name = "highcadence/MOST_HC_transit.%05d%s"%(year,self.extension)
+        else:
+            name = "MOST_transit.%05d%s"%(year,self.extension)
+            
+        gases_vmr = {}
+        if len(self.pgases)==0:
+            gases_vmr["CO2"] = self.CO2ppmv*1e-6
+            gases_vmr["N2"] = 1.0-gases_vmr['CO2']
+        else:
+            for gas in self.pgases:
+                gases_vmr[gas[1:]] = gas/self.pressure
+        if "H2" not in gases_vmr:
+            gases_vmr["H2"] = 0.0
+        if "He" not in gases_vmr:
+            gases_vmr["He"] = 0.0
+        if "O2" not in gases_vmr:
+            gases_vmr["O2"] = 0.0
+            
+        obsv_coords = zip(obsv_lats,obsv_lons) #each must have the same shape as times
+        
+        orbdistances = self.semimajoraxis
+        
+        atm,wvl,spectra,lon,lat,avgspectra = pRT.image(ncd,times,gases_vmr,obsv_coords,gascon=self.gascon,
+                                                       gravity=self.gravity,Tstar=self.startemp,
+                                                       Rstar=self.starradius,orbdistances=orbdistances,
+                                                       h2o_lines='HITEMP',num_cpus=num_cpus,cloudfunc=cloudfunc,
+                                                       smooth=smooth,smoothweight=smoothweight,
+                                                       ozone=self.ozone,stepsperyear=self.stepsperyear,
+                                                       logfile=logfile)
+        
+        output = pRT.save(name,{"wvl":wvl,"time":times,"images":images,
+                                "lat":lat,"lon":lon,"spectra":avgspectra},logfile=logfile)
+        return atm,output
+        
+    
     def inspect(self,variable,year=-1,ignoreNaNs=True,snapshot=False,
                 highcadence=False,savg=False,tavg=False,layer=None):
         """Return a given output variable from a given year, with optional averaging parameters.
@@ -1394,7 +1521,7 @@ class Model(object):
         else:
             self._crash()
     
-    def configure(self,noutput=True,flux=1367.0,startemp=None,starspec=None,pH2=None,
+    def configure(self,noutput=True,flux=1367.0,startemp=None,starradius=1.0,starspec=None,pH2=None,
             pHe=None,pN2=None,pO2=None,pCO2=None,pAr=None,pNe=None,
             pKr=None,pH2O=None,gascon=None,pressure=None,pressurebroaden=True,
             vtype=0,rotationperiod=1.0,synchronous=False,substellarlon=180.0,
@@ -1514,6 +1641,9 @@ class Model(object):
                Incident stellar flux in W/m\ :math:`^2`\ . Default 1367 for Earth.
             startemp : float, optional
                Effective blackbody temperature for the star. Not used if not set.
+            starradius : float, optional
+               Radius of the parent star in solar radii. Currently only used for the optional
+               petitRADTRANS direct imaging postprocessor.
             starspec : str, optional
                Spectral file for the stellar spectrum. Should have two columns and 965 rows,
                with wavelength in the first column and radiance or intensity in the second.
@@ -1532,8 +1662,15 @@ class Model(object):
             pressurebroaden : bool, optional 
                True/False. If False, pressure-broadening of absorbers no longer depends
                on surface pressure. Default is True
-            ozone : bool, optional
-               True/False. Whether or not forcing from stratospheric ozone should be included.
+            ozone : bool or dict, optional
+               True/False/dict. Whether or not forcing from stratospheric ozone should be included. If a dict
+               is provided, it should contain the keys "height", "spread", "amount","varlat","varseason",
+               and "seasonoffset", which correspond to the height in meters of peak O3 concentration, the 
+               width of the gaussian distribution in meters, the baseline column amount of ozone in cm-STP, 
+               the latitudinal amplitude, the magnitude of seasonal variation, and the time offset of the
+               seasonal variation in fraction of a year. The three amounts are additive. To set a uniform, 
+               unvarying O3  distribution, ,place all the ozone in "amount", and set "varlat" and 
+               "varseason" to 0.
             snowicealbedo : float, optional
                A uniform albedo to use for all snow and ice.
             soilalbedo : float, optional
@@ -1807,6 +1944,7 @@ References
             self._edit_namelist("radmod_namelist","NSTARTEMP","1")
             self._edit_namelist("radmod_namelist","STARBBTEMP",str(startemp))
         self.startemp = startemp
+        self.starradius = starradius
         if starspec:
             if starspec[-4:]==".dat":
                 starspec=starspec[:-4]
@@ -1894,6 +2032,9 @@ References
         if year:
             self._edit_namelist("plasim_namelist","N_DAYS_PER_YEAR",str(int(year)))
             self._edit_namelist("planet_namelist","SIDEREAL_YEAR",str(year*86400.0))
+            self.stepsperyear=float(year)*1440.0/self.timestep
+        else:
+            self.stepsperyear=360.*1440.0/self.timestep
         self.sidyear=year
         if rotationperiod!=1.0:
             self._edit_namelist("planet_namelist","ROTSPD",str(1.0/float(rotationperiod)))
@@ -2128,7 +2269,16 @@ References
                 self._edit_namelist("radmod_namelist","ACLLWR","0.0")
         self.columnmode=columnmode
         
-        self._edit_namelist("radmod_namelist","NO3",str(ozone*1))
+        if ozone is False or ozone is True:
+            self._edit_namelist("radmod_namelist","NO3",str(ozone*1))
+        else:
+            self._edit_namelist("radmod_namelist","NO3","1")
+            self._edit_namelist("radmod_namelist","A0O3",str(ozone["amount"]))
+            self._edit_namelist("radmod_namelist","A1O3",str(ozone["varlat"]))
+            self._edit_namelist("radmod_namelist","ACO3",str(ozone["varseason"]))
+            self._edit_namelist("radmod_namelist","TOFFO3",str(ozone["seasonoffset"]))
+            self._edit_namelist("radmod_namelist","BO3",str(ozone["height"]))
+            self._edit_namelist("radmod_namelist","CO3",str(ozone["spread"]))
         self.ozone=ozone
         
         if cpsoil:
@@ -2276,7 +2426,14 @@ References
         desertplanet = bool(int(cfg[44]))
         soilsaturation = _noneparse(cfg[45],float)
         drycore = bool(int(cfg[46]))
-        ozone = bool(int(cfg[47]))
+        try:
+            ozone = bool(int(cfg[47]))
+        except:
+            o3dict = cfg[47].split("&")
+            ozone = {}
+            for o3 in o3dict:
+                parts = o3.split("|")
+                ozone[parts[0]] = float(parts[1])
         cpsoil = _noneparse(cfg[48],float)
         soildepth = float(cfg[49])
         mldepth = float(cfg[50])
@@ -2372,7 +2529,12 @@ References
             initsoilcarbon  = 0.0
             initplantcarbon = 0.0
         
-        self.configure(noutput=noutput,flux=flux,startemp=startemp,starspec=starspec,
+        try:
+            starradius = float(cfg[82])
+        except:
+            starradius = 1.0
+        
+        self.configure(noutput=noutput,flux=flux,startemp=startemp,starspec=starspec,starradius=starradius,
                     gascon=gascon,pressure=pressure,pressurebroaden=pressurebroaden,
                     vtype=vtype,rotationperiod=rotationperiod,synchronous=synchronous,
                     year=year,top_restoretime=restim,runsteps=runsteps,
@@ -2441,6 +2603,9 @@ References
                     self._edit_namelist("radmod_namelist","NSTARTEMP","1")
                     self._edit_namelist("radmod_namelist","STARBBTEMP",str(startemp))
                 self.startemp = startemp
+            if key=="starradius":
+                starradius=value
+                self.starradius=starradius
             if key=="starspec":
                 starspec=value
                 if starspec[-4:]==".dat":
@@ -2853,7 +3018,17 @@ References
                     
             if key=="ozone":
                 self.ozone=value
-                self._edit_namelist("radmod_namelist","NO3",str(self.ozone*1))
+                
+                if self.ozone is False or self.ozone is True:
+                    self._edit_namelist("radmod_namelist","NO3",str(self.ozone*1))
+                else:
+                    self._edit_namelist("radmod_namelist","NO3","1")
+                    self._edit_namelist("radmod_namelist","A0O3",str(self.ozone["amount"]))
+                    self._edit_namelist("radmod_namelist","A1O3",str(self.ozone["varlat"]))
+                    self._edit_namelist("radmod_namelist","ACO3",str(self.ozone["varseason"]))
+                    self._edit_namelist("radmod_namelist","TOFFO3",str(self.ozone["seasonoffset"]))
+                    self._edit_namelist("radmod_namelist","BO3",str(self.ozone["height"]))
+                    self._edit_namelist("radmod_namelist","CO3",str(self.ozone["spread"]))
                 
             if key=="cpsoil":
                 self.cpsoil=value
@@ -3059,7 +3234,7 @@ References
 
 """
         if not filename:
-            filename=self.workdir+"/model.npy"
+            filename=self.workdir+"/%s.npy"%self.modelname
         else:
             if filename[0]!="/" and filename[0]!="~":
                 cwd = os.getcwd()
@@ -3144,7 +3319,11 @@ References
         cfg.append(str(self.desertplanet*1))# = bool(int(cfg[44]))
         cfg.append(str(self.soilsaturation))# = _noneparse(cfg[45],float)
         cfg.append(str(self.drycore*1))# = bool(int(cfg[46]))
-        cfg.append(str(self.ozone*1))# = bool(int(cfg[47]))
+        if self.ozone is False or self.ozone is True:
+            cfg.append(str(self.ozone*1))# = bool(int(cfg[47]))
+        else:
+            o3dict = "&".join([o3+"|"+str(self.ozone[o3]) for o3 in self.ozone])
+            cfg.append(o3dict)
         cfg.append(str(self.cpsoil))# = _noneparse(cfg[48],float)
         cfg.append(str(self.soildepth))# = float(cfg[49])
         cfg.append(str(self.mldepth))# = float(cfg[50])
@@ -3204,6 +3383,7 @@ References
         cfg.append(str(self.initrough      ))
         cfg.append(str(self.initsoilcarbon ))
         cfg.append(str(self.initplantcarbon))
+        cfg.append(str(self.starradius))
         
         print("Writing configuration....\n"+"\n".join(cfg))
         print("Writing to %s...."%filename)

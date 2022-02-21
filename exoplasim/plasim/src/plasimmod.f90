@@ -350,6 +350,8 @@
       real :: dqt(NHOR,NLEP)  = 0.     ! adiabatic q-tendencies (for eg kuo)
       real :: dcc(NHOR,NLEP)  = 0.     ! cloud cover
       real :: dql(NHOR,NLEP)  = 0.     ! Liquid water content
+      real :: dqo3(NHOR,NLEV) = 0.     ! ozon concentration (kg/kg)
+      real :: dqco2(NHOR,NLEV)= 0.     ! co2 concentration (ppmv)
       real :: dw(NHOR,NLEV)   = 0.     ! vertical velocity (dp/dt)
       real :: dtdt(NHOR,NLEP) = 0.     ! t-tendency
       real :: dqdt(NHOR,NLEP) = 0.     ! q-tendency

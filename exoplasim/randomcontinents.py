@@ -305,9 +305,9 @@ def main():
         shift = iln0
         if wraplon:
             shift = iln1
-        x = np.roll(thetacoord,-shift,axis=1)[:,:NLON/2+1]
-        y = np.roll(rcoord,-shift,axis=1)[:,:NLON/2+1]
-        z = np.roll(grid,-shift,axis=1)[:,:NLON/2]
+        x = np.roll(thetacoord,-shift,axis=1)[:,:int(NLON//2)+1]
+        y = np.roll(rcoord,-shift,axis=1)[:,:int(NLON//2)+1]
+        z = np.roll(grid,-shift,axis=1)[:,:int(NLON//2)]
         fig,ax=plt.subplots(subplot_kw={"projection":"polar"},figsize=(9,9))
         ax.set_theta_zero_location('N')
         ax.pcolormesh(x,np.sin(y),z,cmap='gist_earth',vmin=-0.3,vmax=2.5)
@@ -340,9 +340,9 @@ def main():
         shift = iln0
         if wraplon:
             shift = iln1
-        x = np.roll(thetacoord,-shift,axis=1)[:,:NLON/2+1]
-        y = np.roll(rcoord,-shift,axis=1)[:,:NLON/2+1]
-        z = np.roll(cratons[1:-1,1:-1],-shift,axis=1)[:,:NLON/2]
+        x = np.roll(thetacoord,-shift,axis=1)[:,:int(NLON//2)+1]
+        y = np.roll(rcoord,-shift,axis=1)[:,:int(NLON//2)+1]
+        z = np.roll(cratons[1:-1,1:-1],-shift,axis=1)[:,:int(NLON//2)]
         fig,ax=plt.subplots(subplot_kw={"projection":"polar"},figsize=(9,9))
         ax.set_theta_zero_location('N')
         ax.pcolormesh(x,np.sin(y),z,cmap='gist_ncar',vmin=-0.3,vmax=ncontinents+2)
@@ -383,9 +383,9 @@ def main():
             shift = iln0
             if wraplon:
                 shift = iln1
-            x = np.roll(thetacoord,-shift,axis=1)[:,:NLON/2+1]
-            y = np.roll(rcoord,-shift,axis=1)[:,:NLON/2+1]
-            z = np.roll(grid+seams*3.0,-shift,axis=1)[:,:NLON/2]
+            x = np.roll(thetacoord,-shift,axis=1)[:,:int(NLON//2)+1]
+            y = np.roll(rcoord,-shift,axis=1)[:,:int(NLON//2)+1]
+            z = np.roll(grid+seams*3.0,-shift,axis=1)[:,:int(NLON//2)]
             fig,ax=plt.subplots(subplot_kw={"projection":"polar"},figsize=(9,9))
             ax.set_theta_zero_location('N')
             t=ax.pcolormesh(x,np.sin(y),z,cmap='plasma',vmin=-0.3,vmax=2.5)
@@ -423,14 +423,14 @@ def main():
         
         topo = np.copy(geoz)+contz*g0*10.0 #Default lowlands of 10 meters above sea level
     
-        maxiters = 10*int(np.sqrt(NLAT/32))
+        maxiters = 10*int(np.sqrt(int(NLAT//32)))
     
         NLATZ = len(ltsz)
         NLONZ = len(lnsz)
     
-        dl1 = NLONZ/2+2
-        dl2 = NLONZ/2
-        dl3 = NLONZ/2-2
+        dl1 = int(NLONZ//2)+2
+        dl2 = int(NLONZ//2)
+        dl3 = int(NLONZ//2)-2
     
         for i in range(0,maxiters):
             topo = np.maximum(topo,geoz)
@@ -454,14 +454,21 @@ def main():
                         l1=NLONZ-1
                     if l2==NLONZ:
                         l2=0
-                    c1 = topo[j1,(l1  +flip1*dl1)%NLONZ]
-                    c2 = topo[j1,(jlon+flip1*dl2)%NLONZ]
-                    c3 = topo[j1,(l2  +flip1*dl3)%NLONZ]
-                    c4 = topo[jlat,l1]
-                    c5 = topo[jlat,l2]
-                    c6 = topo[j2,(l1  +flip2*dl1)%NLONZ]
-                    c7 = topo[j2,(jlon+flip2*dl2)%NLONZ]
-                    c8 = topo[j2,(l2  +flip2*dl3)%NLONZ]
+                    try:
+                        c1 = topo[j1,(l1  +flip1*dl1)%NLONZ]
+                        c2 = topo[j1,(jlon+flip1*dl2)%NLONZ]
+                        c3 = topo[j1,(l2  +flip1*dl3)%NLONZ]
+                        c4 = topo[jlat,l1]
+                        c5 = topo[jlat,l2]
+                        c6 = topo[j2,(l1  +flip2*dl1)%NLONZ]
+                        c7 = topo[j2,(jlon+flip2*dl2)%NLONZ]
+                        c8 = topo[j2,(l2  +flip2*dl3)%NLONZ]
+                    except BaseException as err:
+                        print(j1,l1,flip1,dl1,NLONZ)
+                        print((l1+flip1*dl1)%NLONZ)
+                        print(l1+flip1*dl1)
+                        print(err)
+                        raise err
                     nutop[jlat,jlon] = 0.2*topo[jlat,jlon]+np.nanmean([c1,c2,c3,c4,c5,c6,c7,c8])*0.8
             topo[:] = nutop[:]
         topospline = interpolate.interp2d(lnsz,ltsz[::-1],(topo[::-1,:]),kind='linear')
@@ -488,9 +495,9 @@ def main():
             shift = iln0
             if wraplon:
                 shift = iln1
-            x = np.roll(thetacoord,-shift,axis=1)[:,:NLON/2+1]
-            y = np.roll(rcoord,-shift,axis=1)[:,:NLON/2+1]
-            z = np.roll(dtopo,-shift,axis=1)[:,:NLON/2]
+            x = np.roll(thetacoord,-shift,axis=1)[:,:int(NLON//2)+1]
+            y = np.roll(rcoord,-shift,axis=1)[:,:int(NLON//2)+1]
+            z = np.roll(dtopo,-shift,axis=1)[:,:int(NLON//2)]
             fig,ax=plt.subplots(subplot_kw={"projection":"polar"},figsize=(9,9))
             ax.set_theta_zero_location('N')
             t=ax.pcolormesh(x,np.sin(y),z,cmap='gist_earth',norm=colors.LogNorm(vmin=10.0))
