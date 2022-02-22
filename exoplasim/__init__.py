@@ -1378,7 +1378,7 @@ class Model(object):
         
         orbdistances = self.semimajoraxis
         
-        atm,wvl,spectra,lon,lat,avgspectra = pRT.image(ncd,times,gases_vmr,obsv_coords,gascon=self.gascon,
+        atm,wvl,spectra,colors,lon,lat,avgspectra = pRT.image(ncd,times,gases_vmr,obsv_coords,gascon=self.gascon,
                                                        gravity=self.gravity,Tstar=self.startemp,
                                                        Rstar=self.starradius,orbdistances=orbdistances,
                                                        h2o_lines='HITEMP',num_cpus=num_cpus,cloudfunc=cloudfunc,
@@ -1386,7 +1386,7 @@ class Model(object):
                                                        ozone=self.ozone,stepsperyear=self.stepsperyear,
                                                        logfile=logfile)
         
-        output = pRT.save(name,{"wvl":wvl,"time":times,"images":images,
+        output = pRT.save(name,{"wvl":wvl,"time":times,"images":images,"colors":colors,
                                 "lat":lat,"lon":lon,"spectra":avgspectra},logfile=logfile)
         return atm,output
         

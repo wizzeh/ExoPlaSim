@@ -7,10 +7,12 @@ from petitRADTRANS import nat_cst as nc
 #import exoplasim.constants
 #from exoplasim.constants import smws
 import exoplasim.pyburn
-import surfacespecs as spec
-import constants
-from constants import smws
+import exoplasim.surfacespecs
+import exoplasim.surfacespecs as spec
+import exoplasim.constants
+from exoplasim.constants import smws
 from itertools import repeat
+import exoplasim.colormatch
 
 
 def _log(destination,string):
@@ -598,8 +600,52 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
     atmosphere.calc_flux(extta, mass_fractions, gravity, MMW,
                          geometry='non-isotropic',**kwargs)
     
-    return atmosphere.flux*1e6 #erg cm-2 s-1 Hz-1
+    intensities = makeintensities(nc.c/atmosphere.freq/1e-4,atmosphere.flux*1e6)
+    
+    return atmosphere.flux*1e6,intensities #erg cm-2 s-1 Hz-1
 
+
+def _lognorm(x):
+    v = np.log10(np.maximum(x,1.0e-15))
+    vmin = np.amin(v)
+    v-=vmin
+    vmax = np.amax(v)
+    v/=vmax
+    return v
+
+def makeintensities(wvl,fluxes):
+    '''Convert spectrum to (x,y,Y) intensities.
+    
+    Parameters
+    ----------
+    wvl : array-like
+        Wavelengths in microns
+    fluxes : array-like
+        Spectrum in fluxes (units are arbitrary)
+        
+    Returns
+    -------
+    (float,float,float)
+        (x,y,Y) tuple
+    '''
+    intensities = colormatch.makexyz(wvl*1.0e3,fluxes)
+    return intensities
+    
+def makecolors(intensities):
+    
+    norms = _lognorm(intensities[...,2]/np.nanmax(intensities[...,2]))
+    ogshape = intensities.shape
+    flatnorms = norms.flatten()
+    flatshape = len(flatnorms)
+    flatintensities = np.reshape(intensities,(flatshape,3))
+    colors = np.zeros((flatshape,3))
+    for k in range(flatshape):
+        colors[k,:] = colormatch.xyz2rgb(flatintensities[k,0],flatintensities[k,1],
+                                         flatintensities[k,2]*flatnorms[k])
+    colors /= np.nanmax(colors)
+    colors = np.reshape(colors,ogshape)
+    return colors
+    
     
 def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.80665, 
             Tstar=5778.0,Rstar=1.0,orbdistances=1.0,h2o_lines='HITEMP',
@@ -609,6 +655,14 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     
     This routine computes the reflection+emission spectrum for the planet at each
     indicated time.
+    
+    Note that deciding what the observer coordinates ought to be may not be a trivial operation.
+    Simply setting them to always be the same is fine for a 1:1 synchronously-rotating planet,
+    where the insolation pattern never changes. But for an Earth-like rotator, you will need to
+    be mindful of rotation rate and the local time when snapshots are written. Perhaps you would
+    like to see how things look as the local time changes, as a geosynchronous satellite might observe,
+    or maybe you'd like to only observe in secondary eclipse or in quadrature, and so the observer-facing
+    coordinates may not be the same each time.
     
     Parameters
     ----------
@@ -720,6 +774,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     nlat = len(lat)
     
     images = np.zeros((len(imagetimes),nlat*nlon,len(atmosphere.freq)))
+    photos = np.zeros((len(imagetimes),nlat*nlon,3))
     meanimages = np.zeros((len(imagetimes),len(atmosphere.freq)))
     
     lev = output.variables['lev'][:]
@@ -867,25 +922,30 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             with mp.Pool(num_cpus) as pool:
                 spectra = pool.starmap(_imgcolumn,args)
             for i,column in enumerate(spectra):
-                images[idx,i,:] = column[:]
+                images[idx,i,:] = column[0][:]
+                photos[idx,i,:] = column[1][:]
         else:
             for i in range(nterm):
-                images[idx,i,:] = _imgcolumn(atmosphere,press[i,:],surfspecs[i,:],
-                                             temp[i,:],h2o[i,:],clc[i,:],
-                                             gases_vmr,gascon,h2o_lines,
-                                             gravity,Tstar,Rstar*nc.r_sun,
-                                             starseparation*nc.AU,zenith[i],
-                                             cloudfunc,smooth,smoothweight,o3[i],
-                                             bo3,co3)
+                column = _imgcolumn(atmosphere,press[i,:],surfspecs[i,:],
+                                    temp[i,:],h2o[i,:],clc[i,:],
+                                    gases_vmr,gascon,h2o_lines,
+                                    gravity,Tstar,Rstar*nc.r_sun,
+                                    starseparation*nc.AU,zenith[i],
+                                    cloudfunc,smooth,smoothweight,o3[i],
+                                    bo3,co3)
+                images[idx,i,:] = column[0][:]
+                photos[idx,i,:] = column[1][:]
         for idv,view in enumerate(projectedareas):
             meanimages[idx,idv,:] = np.average(images[idx,...],axis=0,weights=view)
     
     images = np.reshape(images,(len(imagetimes),nlat,nlon,len(atmosphere.freq)))
-    return atmosphere,nc.c/atmosphere.freq*1e4,images,lon,lat,meanimages
+    photos = np.reshape(photos,(len(imagetimes),nlat,nlon,3))
+    return atmosphere,nc.c/atmosphere.freq*1e4,images,photos,lon,lat,meanimages
 
 _postmetadata = {"images":["image_spectra_map","erg cm-2 s-1 Hz-1"],
                  "spectra":[["image_spectrum_avg","erg cm-2 s-1 Hz-1"],
                             ["transit_spectrum_avg","km"]],
+                 "colors":["true_color_image","RGB"],
                  "transits":["transit_spectra_map","km"],
                  "weights":["transit_column_width","degrees"],
                  "lat":["latitude","degrees"],
@@ -1194,6 +1254,18 @@ def _netcdf(filename,dataset,logfile=None):
         images.standard_name = "image_spectra_map"
         images.long_name = "image_spectra_map"
         
+        _log(logfile,"Writing 2D true-color data for each observation.....")
+        datavar = dataset["colors"]
+        dvarmask = datavar[np.isfinite(datavar)]
+        dvarmask = dvarmask[dvarmask!=0]
+        photos = ncd.createVariable("colors","f4",("time","lat","lon","RGB"),
+                                    zlib=True,least_significant_digit=6)
+        photos.set_auto_mask(False)
+        photos[:] = datavar[:]
+        photos.units = "RGB"
+        photos.standard_name = "true_color_image"
+        photos.long_name = "true_color_image"
+        
         _log(logfile,"Writing disk-averaged image data for each observation.....")
         datavar = dataset["spectra"]
         dvarmask = datavar[np.isfinite(datavar)]
@@ -1339,6 +1411,8 @@ def _hdf5(filename,dataset,logfile=None,append=False):
                 hdfile.attrs[var] = np.array(["transit_spectrum_avg","km"])
             elif var=="images":
                 hdfile.attrs[var] = np.array(["image_spectra_map","erg cm-2 s-1 Hz-1"])
+            elif var=="colors":
+                hdfile.attrs[var] = np.array(["true_color_image","RGB"])
             elif var=="transits":
                 hdfile.attrs[var] = np.array(["transit_spectra_map","km"])
             elif var=="weights":
