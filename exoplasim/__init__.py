@@ -448,7 +448,7 @@ class Model(object):
         
         
     def runtobalance(self,threshold = None,baseline=50,maxyears=300,minyears=75,
-                    timelimit=None,crashifbroken=True,clean=True):
+                    timelimit=None,crashifbroken=True,clean=True,diagnosticvars=None,):
         """ Run the model until energy balance equilibrium is reached at the top and surface.
             
         Parameters
@@ -473,6 +473,9 @@ class Model(object):
             True/False. If True, Pythonic error handling is enabled. Default True.
         clean : bool, optional
             True/False. If True, raw output is deleted once postprocessed. Default True.
+        diagnosticvars : array-like, optional
+            List of output variables for which global annual means should be computed and
+            printed to standard output each year.
 
         Returns
         -------
@@ -566,6 +569,13 @@ class Model(object):
                     if self.crashtolerant:
                         raise #We actually need to get out of here before the cleanup routines kick in
                     self._crash()
+                if diagnosticvars is not None:
+                    print("Diagnostics for year %d:"%self.currentyear)
+                    for dv in diagnosticvars:
+                        try:
+                            print("\t%9s:\t%f"%(dv,self.inspect(dv,year=-1,savg=True,tavg=True)))
+                        except:
+                            print("\tError computing global annual mean for variable %s"%dv)
                 if clean:
                     if timeavg:
                         os.system("rm %s"%dataname)
@@ -3468,9 +3478,9 @@ References
             fnl[l]=' '.join(fnl[l])
         if not found:
             if mode=='EQ':
-                fnl.insert(idx,' '+arg+' = '+val+' ')
+                fnl.insert(idx,' '+arg+' = '+str(val)+' ')
             else:
-                fnl.insert(idx,' '+arg+'= '+val+' ,')
+                fnl.insert(idx,' '+arg+'= '+str(val)+' ,')
             
         f=open(self.workdir+"/"+namelist,"w")
         f.write('\n'.join(fnl))
@@ -3486,11 +3496,11 @@ References
         pnl = [y for y in pnl if y!='']
         for n in range(len(pnl)):
             if pnl[n].split('=')[0].strip()==arg:
-                pnl[n]=arg+"="+val
+                pnl[n]=arg+"="+str(val)
                 flag=True
                 break
         if not flag:
-            pnl.append(arg+'='+val)
+            pnl.append(arg+'='+str(val))
         pnl.append('')
         
         with open(self.workdir+"/"+namelist,"w") as f:
