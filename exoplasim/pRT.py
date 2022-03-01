@@ -837,6 +837,11 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         ta = np.concatenate([ta,ts[:,np.newaxis]],axis=1)
         dql = np.concatenate([dql,np.zeros(len(dql))[:,np.newaxis]],axis=1)
         
+        try:
+            starseparation = orbdistances[idx]
+        except:
+            starseparation = orbdistances
+        
         if ozone is False:
             a0o3 = 0.
             a1o3 = 0.
