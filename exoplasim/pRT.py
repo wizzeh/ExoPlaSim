@@ -815,8 +815,8 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                 spec.modelspecs["oceanblend"],
                 spec.modelspecs["iceblend"]]
     
-    sfcalbedo = surfaces[1]*lsm + surfaces[0]*(1-lsm)
-    sfcalbedo = sfcalbedo.flatten()
+    sfcalbedo = surfaces[1][np.newaxis,:]*lsm[:,np.newaxis] + surfaces[0][np.newaxis,:]*(1-lsm)[:,np.newaxis]
+    #sfcalbedo = sfcalbedo.flatten()
     
     for idx,t in enumerate(imagetimes):
         ts = output.variables['ts'][t,...].flatten()
@@ -885,9 +885,9 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         #for n in range(len(sfctype)):
         #    surfaces.append({'type':sfctype[n],'albedo':albedo[n]})
             
-        surfspecs = (sfcalbedo[np.newaxis,:]*(1-output.variables['sic'][t,...].flatten())+
-                     surfaces[2][np.newaxis,:]*(output.variables['sic'][t,...].flatten()))
-        surfspecs = (surfspecs*(1-ice) + surfaces[2][np.newaxis,:]*ice)
+        surfspecs = (sfcalbedo*(1-output.variables['sic'][t,...].flatten())[:,np.newaxis]+
+                     surfaces[2][np.newaxis,:]*(output.variables['sic'][t,...].flatten())[:,np.newaxis])
+        surfspecs = (surfspecs*(1-ice)[:,np.newaxis] + surfaces[2][np.newaxis,:]*ice[:,np.newaxis])
         
         for n in range(len(albedo)):
             bol_alb = np.trapz(stellarspec*surfspecs[n,:],x=spec.wvl)/ \
