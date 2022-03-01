@@ -593,10 +593,10 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
     atmosphere.reflectance = np.interp(nc.c/atmosphere.freq/1e-4,spec.wvl,surface)
     
     if zenith<=90.0: #We only need to compute the direct light contribution if the sun is up
-        kwargs["theta_star":zenith]
-        kwargs["Tstar":Tstar]
-        kwargs["Rstar":Rstar]
-        kwargs["semimajoraxis":starseparation]
+        kwargs["theta_star"]=zenith
+        kwargs["Tstar"]=Tstar
+        kwargs["Rstar"]=Rstar
+        kwargs["semimajoraxis"]=starseparation
     
     #Compute flux
     atmosphere.calc_flux(extta, mass_fractions, gravity, MMW,
