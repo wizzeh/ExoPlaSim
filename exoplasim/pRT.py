@@ -546,6 +546,8 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
     ##REMOVE ONCE FIXED
     extcl = np.append(np.zeros(20),clouds)
     
+    psurf = pressures[-1]
+    
     if smooth:
         exthus = _smooth(exthus,xcoords=extp,xN=psurf,centerweight=smoothweight)
         extcl = _smooth(extcl,xcoords=extp,xN=psurf,centerweight=smoothweight)
