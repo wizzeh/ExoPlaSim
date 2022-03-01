@@ -914,7 +914,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             projectedareas.append(np.cos(view)*darea)
         
         if num_cpus>1:
-            args = zip(repeat(atmosphere),press,surfspecs,temp,h2o,clc,repeat(gases_vmr),
+            args = zip(repeat(atmosphere),pa,surfspecs,ta,hus,dql,repeat(gases_vmr),
                        repeat(gascon),repeat(h2o_lines),repeat(gravity),
                        repeat(Tstar),repeat(Rstar*nc.r_sun),repeat(starseparation*nc.AU),
                        zenith,repeat(cloudfunc),repeat(smooth),repeat(smoothweight),o3,
@@ -926,8 +926,8 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                 photos[idx,i,:] = column[1][:]
         else:
             for i in range(nterm):
-                column = _imgcolumn(atmosphere,press[i,:],surfspecs[i,:],
-                                    temp[i,:],h2o[i,:],clc[i,:],
+                column = _imgcolumn(atmosphere,pa[i,:],surfspecs[i,:],
+                                    ta[i,:],hus[i,:],dql[i,:],
                                     gases_vmr,gascon,h2o_lines,
                                     gravity,Tstar,Rstar*nc.r_sun,
                                     starseparation*nc.AU,zenith[i],
