@@ -563,6 +563,7 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
         mass_fractions[gas] = gases_vmr[gas] * mmass/MMW * (1-exthus)
         
     mass_fractions['H2O_'+h2o_lines] = exthus
+    mass_fractions['H2O(c)'] = extcl
     kwargs = cloudfunc(extp,extta,extcl)
     
     #Compute ozone from parameterization
