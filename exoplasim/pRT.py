@@ -13,6 +13,7 @@ import exoplasim.constants
 from exoplasim.constants import smws
 from itertools import repeat
 import exoplasim.colormatch
+import exoplasim.colormatch as cmatch
 
 
 def _log(destination,string):
@@ -631,7 +632,7 @@ def makeintensities(wvl,fluxes):
     (float,float,float)
         (x,y,Y) tuple
     '''
-    intensities = colormatch.makexyz(wvl*1.0e3,fluxes)
+    intensities = cmatch.makexyz(wvl*1.0e3,fluxes)
     return intensities
     
 def makecolors(intensities):
@@ -643,7 +644,7 @@ def makecolors(intensities):
     flatintensities = np.reshape(intensities,(flatshape,3))
     colors = np.zeros((flatshape,3))
     for k in range(flatshape):
-        colors[k,:] = colormatch.xyz2rgb(flatintensities[k,0],flatintensities[k,1],
+        colors[k,:] = cmatch.xyz2rgb(flatintensities[k,0],flatintensities[k,1],
                                          flatintensities[k,2]*flatnorms[k])
     colors /= np.nanmax(colors)
     colors = np.reshape(colors,ogshape)
