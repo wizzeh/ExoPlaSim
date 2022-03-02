@@ -10,7 +10,7 @@ widegamut = np.array([[ 1.4628067, -0.1840623, -0.2743606],
 
 
 def _loadcie():
-    wvl,xx,yy,zz = np.loadtxt("cmf.csv",unpack=True,delimiter=',')
+    wvl,xx,yy,zz = np.loadtxt("/".join(__file__.split("/")[:-1])+"cmf.csv",unpack=True,delimiter=',')
     return wvl,xx,yy,zz
     
 def interpolant(wvl):
