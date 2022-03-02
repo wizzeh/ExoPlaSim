@@ -477,7 +477,7 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
                gases_vmr, gascon, h2o_lines,
                gravity, Tstar, Rstar,
                starseparation,zenith,cloudfunc,smooth,smoothweight,ozone,
-               ozoneheight,ozonespread):
+               ozoneheight,ozonespread,num):
     '''Compute the reflectance/emission spectrum for a column of atmosphere.
     
     Parameters
@@ -529,6 +529,8 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
         Altitude of maximum ozone concentration [m]
     ozonespread : float
         Width of the ozone gaussian distribution [m]
+    num : int
+        Column number, for diagnostic purposes
     
     Returns
     -------
@@ -536,6 +538,7 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
         Transmission radius in meters
     '''
     
+    print("Doing column %d"%num)
     
     #Define vertical profiles with ghost stratosphere
     extp = np.append(np.geomspace(1.0e-6,0.5*pressures[0],num=20),pressures)
@@ -776,6 +779,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     lons,lats = np.meshgrid(lon,lat)
     nlon = len(lon)
     nlat = len(lat)
+    ncols = nlon*nlat
     
     images = np.zeros((len(imagetimes),nlat*nlon,len(atmosphere.freq)))
     photos = np.zeros((len(imagetimes),nlat*nlon,3))
@@ -914,34 +918,37 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                 viewangles.append(view)
         except:
             view = _adistance(ilons,ilats,obsv_coords[idx][1],obsv_coords[idx][0])
-            view[view>=np.pi/2.] = np.pi/2.
+            #view[view>=np.pi/2.] = np.pi/2.
             viewangles.append(view)
         viewangles = _adistance(ilons,ilats,obsv_coords[idx][1],obsv_coords[idx][0])
         
         projectedareas = []
         for view in viewangles:
-            projectedareas.append(np.cos(view)*darea)
+            if view>=np.pi/2.:
+                projectedareas.append(0.0)
+            else:
+                projectedareas.append(np.cos(view)*darea)
         
         if num_cpus>1:
             args = zip(repeat(atmosphere),pa,surfspecs,ta,hus,dql,repeat(gases_vmr),
                        repeat(gascon),repeat(h2o_lines),repeat(gravity),
                        repeat(Tstar),repeat(Rstar*nc.r_sun),repeat(starseparation*nc.AU),
                        zenith,repeat(cloudfunc),repeat(smooth),repeat(smoothweight),o3,
-                       repeat(bo3),repeat(co3))
+                       repeat(bo3),repeat(co3),np.arange(ncols))
             with mp.Pool(num_cpus) as pool:
                 spectra = pool.starmap(_imgcolumn,args)
             for i,column in enumerate(spectra):
                 images[idx,i,:] = column[0][:]
                 photos[idx,i,:] = column[1][:]
         else:
-            for i in range(nterm):
+            for i in range(ncols):
                 column = _imgcolumn(atmosphere,pa[i,:],surfspecs[i,:],
                                     ta[i,:],hus[i,:],dql[i,:],
                                     gases_vmr,gascon,h2o_lines,
                                     gravity,Tstar,Rstar*nc.r_sun,
                                     starseparation*nc.AU,zenith[i],
                                     cloudfunc,smooth,smoothweight,o3[i],
-                                    bo3,co3)
+                                    bo3,co3,i)
                 images[idx,i,:] = column[0][:]
                 photos[idx,i,:] = column[1][:]
         for idv,view in enumerate(projectedareas):
