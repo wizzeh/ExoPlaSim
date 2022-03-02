@@ -30,7 +30,8 @@ def basicclouds(pressure,temperature,cloudwater):
     '''A basic cloud parameterization using T-dependent particle size distribution.
     
     This could be replaced with a different (better) cloud particle parameterization,
-    but it should have the same call signature and return the same thing.
+    but it should have the same call signature and return the same thing. This parameterization
+    is borrowed from Edwards, et al (2007, doi:10.1016/j.atmosres.2006.03.002).
     
     Parameters
     ----------
@@ -279,6 +280,7 @@ def transit(output,transittimes,gases_vmr, gascon=287.0, gravity=9.80665,
     cloudfunc : function, optional
         A routine which takes pressure, temperature, and cloud water content
         as arguments, and returns keyword arguments to be unpacked into calc_flux_transm.
+        If not specified, `basicclouds` will be used.
     smooth : bool, optional
         Whether or not to smooth humidity and cloud columns. As of Nov 12, 2021, it 
         is recommended that you use smooth=True for well-behaved spectra. This is a
@@ -639,6 +641,21 @@ def makeintensities(wvl,fluxes):
     return intensities
     
 def makecolors(intensities):
+    '''Convert (x,y,Y) intensities to RGB values.
+    
+    Uses CIE color-matching functions and a wide-gamut RGB colorspace to
+    convert XYZ-coordinate color intensities to RGB intensities, log-normalized.
+    
+    Parameters
+    ----------
+    intensities : array-like
+        Must have shape (N,3)--array of (x,y,Y) intensities
+        
+    Returns
+    -------
+    array-like (N,3)
+        RGB color values.
+    '''
     
     norms = _lognorm(intensities[...,2]/np.nanmax(intensities[...,2]))
     ogshape = intensities.shape
@@ -702,6 +719,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     cloudfunc : function, optional
         A routine which takes pressure, temperature, and cloud water content
         as arguments, and returns keyword arguments to be unpacked into calc_flux_transm.
+        If not specified, `basicclouds` will be used.
     smooth : bool, optional
         Whether or not to smooth humidity and cloud columns. As of Nov 12, 2021, it 
         is recommended that you use smooth=True for well-behaved spectra. This is a
@@ -783,7 +801,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     
     images = np.zeros((len(imagetimes),nlat*nlon,len(atmosphere.freq)))
     photos = np.zeros((len(imagetimes),nlat*nlon,3))
-    meanimages = np.zeros((len(imagetimes),len(atmosphere.freq)))
+    meanimages = np.zeros((len(imagetimes),len(obsv_coords),len(atmosphere.freq)))
     
     lev = output.variables['lev'][:]
     tas = np.transpose(output.variables['ta'][:],axes=(0,2,3,1))
@@ -951,9 +969,13 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                                     bo3,co3,i)
                 images[idx,i,:] = column[0][:]
                 photos[idx,i,:] = column[1][:]
-        for idv,view in enumerate(projectedareas):
-            meanimages[idx,idv,:] = np.average(images[idx,...],axis=0,weights=view)
-    
+        photos[idx,:,:] = makecolors(photos[idx,:,:])
+        try:
+            for idv,view in enumerate(projectedareas):
+                print("Processign view %d"%idv)
+                meanimages[idx,idv,:] = np.average(images[idx,...],axis=0,weights=view)
+        except:
+            print("Error computing disk-averaged means")
     images = np.reshape(images,(len(imagetimes),nlat,nlon,len(atmosphere.freq)))
     photos = np.reshape(photos,(len(imagetimes),nlat,nlon,3))
     return atmosphere,nc.c/atmosphere.freq*1e4,images,photos,lon,lat,meanimages
