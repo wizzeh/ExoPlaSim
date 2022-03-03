@@ -1396,7 +1396,7 @@ class Model(object):
                                                        ozone=self.ozone,stepsperyear=self.stepsperyear,
                                                        logfile=logfile)
         
-        output = pRT.save(name,{"wvl":wvl,"time":times,"images":images,"colors":colors,
+        output = pRT.save(name,{"wvl":wvl,"time":times,"images":spectra,"colors":colors,
                                 "lat":lat,"lon":lon,"spectra":avgspectra},logfile=logfile)
         return atm,output
         

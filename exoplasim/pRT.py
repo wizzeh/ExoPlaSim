@@ -673,8 +673,8 @@ def makecolors(intensities):
     
 def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.80665, 
             Tstar=5778.0,Rstar=1.0,orbdistances=1.0,h2o_lines='HITEMP',
-            num_cpus=4,cloudfunc=None,smooth=True,smoothweight=0.95,
-            stellarspec=None,ozone=False,stepsperyear=11520.,logfile=None):
+            num_cpus=4,cloudfunc=None,smooth=True,smoothweight=0.90,
+            stellarspec=None,ozone=False,stepsperyear=11520.,logfile=None,debug=False):
     '''Compute reflection+emission spectra for snapshot output
     
     This routine computes the reflection+emission spectrum for the planet at each
@@ -842,8 +842,13 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                 spec.modelspecs["iceblend"]]
     
     sfcalbedo = surfaces[1][np.newaxis,:]*lsm[:,np.newaxis] + surfaces[0][np.newaxis,:]*(1-lsm)[:,np.newaxis]
+    
+    if debug:
+        albedomap = np.zeros((len(imagetimes),nlon*nlat,len(surfaces[0])))
     #sfcalbedo = sfcalbedo.flatten()
     
+    projectedareas = np.zeros((len(imagetimes),len(viewangles),len(ilons)))
+        
     for idx,t in enumerate(imagetimes):
         ts = output.variables['ts'][t,...].flatten()
         ps = output.variables['ps'][t,...].flatten()
@@ -900,6 +905,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         nightside = darkness*(np.sqrt(np.gradient(darkness,axis=0)**2+\
                                       np.gradient(darkness,axis=1)**2)==0.0)
         zenith[nightside>0.5] = 91.0
+        zenith[nightside<=0.5] = np.minimum(zenith[nightside<=0.5],90.0-360.0/nlon*0.5) #dawn/dusk angle due to finite resolution
         zenith = zenith.flatten()
         
         albedo = output.variables['alb'][t,...].flatten()
@@ -926,6 +932,9 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             fudge_factor = albedo[n]/bol_alb
             surfspecs[n,:] *= fudge_factor
             
+        if debug:
+            albedomap[idx,:,:] = surfspecs[:,:]
+            
         viewangles = []
         try:
             test = len(obsv_coords[idx][0]) #If this fails, then we only have one set of coordinates
@@ -940,12 +949,9 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             viewangles.append(view)
         viewangles = _adistance(ilons,ilats,obsv_coords[idx][1],obsv_coords[idx][0])
         
-        projectedareas = []
-        for view in viewangles:
-            if view>=np.pi/2.:
-                projectedareas.append(0.0)
-            else:
-                projectedareas.append(np.cos(view)*darea)
+        for idv,view in enumerate(viewangles):
+            projectedareas[idx,idv,:][view>=np.pi/2] = 0.0
+            projectedareas[idx,idv,:][view<np.pi/2] = np.cos(view[view<np.pi/2])*darea[view<np.pi/2]
         
         if num_cpus>1:
             args = zip(repeat(atmosphere),pa,surfspecs,ta,hus,dql,repeat(gases_vmr),
@@ -971,14 +977,21 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                 photos[idx,i,:] = column[1][:]
         photos[idx,:,:] = makecolors(photos[idx,:,:])
         try:
-            for idv,view in enumerate(projectedareas):
+            for idv in range(len(viewangles)):
+                view = projectedareas[idx,idv,:]
                 print("Processign view %d"%idv)
                 meanimages[idx,idv,:] = np.average(images[idx,...],axis=0,weights=view)
-        except:
+        except BaseException as err:
             print("Error computing disk-averaged means")
+            print(err)
     images = np.reshape(images,(len(imagetimes),nlat,nlon,len(atmosphere.freq)))
     photos = np.reshape(photos,(len(imagetimes),nlat,nlon,3))
-    return atmosphere,nc.c/atmosphere.freq*1e4,images,photos,lon,lat,meanimages
+    if debug:
+        projectedareas = np.reshape(projectedareas,(len(imagetimes),len(viewangles),nlat,nlon))
+        albedomap = np.reshape(albedomap,(len(imagetimes),nlat,nlon,len(surfaces[0])))
+        return atmosphere,nc.c/atmosphere.freq*1e4,images,photos,lon,lat,meanimages,albedomap,projectedareas
+    else:
+        return atmosphere,nc.c/atmosphere.freq*1e4,images,photos,lon,lat,meanimages
 
 _postmetadata = {"images":["image_spectra_map","erg cm-2 s-1 Hz-1"],
                  "spectra":[["image_spectrum_avg","erg cm-2 s-1 Hz-1"],
@@ -989,7 +1002,8 @@ _postmetadata = {"images":["image_spectra_map","erg cm-2 s-1 Hz-1"],
                  "lat":["latitude","degrees"],
                  "lon":["longitude","degrees"],
                  "wvl":["wavelength","microns"],
-                 "time":["obsv_time_index","indices"]}
+                 "time":["obsv_time_index","indices"],
+                 "albedomap":["input_albedo_map","reflectivity"]}
 
 def _writecsvs(filename,variables,extension=None,logfile=None):
     '''Write CSV output files
