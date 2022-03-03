@@ -1432,6 +1432,146 @@ def load(filename,csvbuffersize=1):
     return output
     
 
+def orthographic(lon,lat,imap,central_longitude=0,central_latitude=0,ny=200,nx=200,interp='bilinear'):
+    '''Perform an orthographic projection.
+    
+    Parameters
+    ----------
+    lon : numpy.ndarray (1D)
+        Longitude array [degrees]
+    lat : numpy.ndarray (1D)
+        Latitude array [degrees]
+    imap : numpy.ndarray
+        Data array to be projected. The first two dimensions should be (lat,lon)
+    central_longitude : float, optional
+        Longitude in degrees to be centered beneath the observer
+    central_latitude : float, optional
+        Latitude in degrees to be centered beneath the observer
+    ny : int, optional
+        Number of pixels in the Y direction for the output projection
+    nx : int, optional
+        Number of pixels in the X direction for the output projection
+    interp : str, optional
+        Interpolation to use. Currently only 'bilinear' is accepted; otherwise nearest-neighbor will be used.
+        
+    Returns
+    -------
+    numpy.ndarray (ny,nx)
+        The projected output
+    '''
+    
+    l0 = central_longitude
+    p0 = central_latitude
+    
+    shape = np.array(imap.shape)
+    shape[0] = ny
+    shape[1] = nx
+    
+    xymap = np.zeros(tuple(shape))
+    xymap[:] = 0.0
+    coords = np.zeros((ny,nx,2))
+    coords2 = np.zeros((ny,nx,2,3))
+    coords3 = np.zeros((ny,nx,2))
+    rad=0.5*(8*nx/18.0+8*ny/18.0)
+    
+    zlat = np.zeros(np.array(lat.shape)+2)
+    zlon = np.zeros(np.array(lon.shape)+2)
+    dlat = np.diff(lat)
+    dlon = np.diff(lon)
+    zlon[0] = lon[0]-dlon[0]
+    zlon[1:-1] = lon[:]
+    zlon[-1] = lon[-1]+dlon[-1]
+    zlat[0] = lat[0]-dlat[0]
+    zlat[-1] = lat[-1]+dlat[-1]
+    zlat[1:-1] = lat[:]
+    newshape = np.array(imap.shape)
+    newshape[0] += 2
+    newshape[1] += 2
+    zmap = np.zeros(tuple(newshape))
+    zmap[1:-1,1:-1] = imap[:]
+    zmap[0,...] = zmap[1,...]
+    zmap[-1,...] = zmap[-2,...]
+    zmap[:,0] = zmap[:,-2]
+    zmap[:,-1] = zmap[:,1]
+    
+    if l0>180.0:
+        l0 -= 360.0
+
+    if lon.max()>180.0:
+        zlon[zlon>180]-=360.0    
+
+    p0 *= np.pi/180.0
+    l0 *= np.pi/180.0
+    xx = np.arange(nx)-nx/2
+    yy = np.arange(ny)-ny/2
+    for j in range(0,ny):
+        jy = yy[j]
+        for i in range(0,nx):
+            ix = xx[i]
+            if (ix**2+jy**2)<=rad**2:
+                rho = np.sqrt(ix**2+jy**2)
+                cc = np.arcsin(rho/rad)
+                if rho==0:
+                    phi = p0
+                    lamb = l0
+                else:
+                    phi = np.arcsin(np.cos(cc)*np.sin(p0) + jy*np.sin(cc)*np.cos(p0)/rho)
+                    lamb = l0 + np.arctan2(ix*np.sin(cc),(rho*np.cos(cc)*np.cos(p0)-jy*np.sin(cc)*np.sin(p0)))
+                phi *= 180.0/np.pi
+                lamb *= 180.0/np.pi
+                if lamb<-180:
+                    lamb += 360
+                if lamb>180:
+                    lamb -= 360
+                jlat = np.argmin(abs(phi-zlat))
+                jlon = np.argmin(abs(lamb-zlon))
+                if interp=="bilinear":
+                    xlat1 = np.where(zlat<phi)[0]
+                    xlat2 = np.where(zlat>=phi)[0]
+                    xlon1 = np.where(zlon<lamb)[0]
+                    xlon2 = np.where(zlon>=lamb)[0]
+                    if len(xlat1)>0 and len(xlat2)>0 and len(xlon1)>0 and len(xlon2)>0:
+                        jlat1 = np.where(zlat==zlat[xlat1].max())[0][0]
+                        jlat2 = np.where(zlat==zlat[xlat2].min())[0][0]
+                        jlon1 = np.where(zlon==zlon[xlon1].max())[0][0]
+                        jlon2 = np.where(zlon==zlon[xlon2].min())[0][0]
+                        p1 = zlat[jlat1]
+                        p2 = zlat[jlat2]
+                        l1 = zlon[jlon1]
+                        l2 = zlon[jlon2]
+                        #print "interpolating;",jlat1,jlat2,jlon1,jlon2,lamb#,zlon[np.where(zlon<lamb)]
+                        dl = l2-l1
+                        dp = p2-p1
+                        try:
+                            if dl==0 and dp>0:
+                                fxy1 = zmap[jlat1,jlon]
+                                fxy2 = zmap[jlat2,jlon]
+                                xymap[j,i] = (p2-phi)/dp*fxy1 + (phi-p1)/dp*fxy2
+                            elif dp==0 and dl>0:
+                                fx1y = zmap[jlat,jlon1]
+                                fx2y = zmap[jlat,jlon2]
+                                xymap[j,i] = (l2-lamb)/dl*fx1y + (lamb-l1)/dl*fx2y
+                            elif dp==0 and dl==0:
+                                xymap[j,i] = zmap[jlat,jlon]
+                            else:
+                                fxy1 = (l2-lamb)/dl*zmap[jlat1,jlon1] + (lamb-l1)/dl*zmap[jlat1,jlon2]
+                                fxy2 = (l2-lamb)/dl*zmap[jlat2,jlon1] + (lamb-l1)/dl*zmap[jlat2,jlon2]
+                                xymap[j,i] = (p2-phi)/dp*fxy1 + (phi-p1)/dp*fxy2
+                        except:
+                            print p1,p2,l1,l2,jlat1,jlat2,jlon1,jlon2
+                            raise
+                    else:
+                        #print jlat1,jlat2,jlon1,jlon2
+                        jlat1=-200
+                        jlat2=-200
+                        xymap[j,i] = zmap[jlat,jlon]
+                else:
+                    #print "not bilinear"
+                    xymap[j,i] = zmap[jlat,jlon]
+                    
+    return xymap
+    
+
 #def rhines(U,lat,lon,plarad=6371.0,daylen=15.0,beta=None):
     #'''Return the nondimensional Rhines length scale L_R/a
     

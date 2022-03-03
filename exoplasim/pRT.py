@@ -980,7 +980,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         try:
             for idv in range(projectedareas.shape[1]):
                 view = projectedareas[idx,idv,:]
-                print("Processign view %d"%idv)
+                print("Processing view %d"%idv)
                 meanimages[idx,idv,:] = np.average(images[idx,...],axis=0,weights=view)
         except BaseException as err:
             print("Error computing disk-averaged means")
