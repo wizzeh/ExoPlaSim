@@ -847,7 +847,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         albedomap = np.zeros((len(imagetimes),nlon*nlat,len(surfaces[0])))
     #sfcalbedo = sfcalbedo.flatten()
     
-    projectedareas = np.zeros((len(imagetimes),len(viewangles),len(ilons)))
+    projectedareas = np.zeros((len(imagetimes),len(obsv_coords),len(ilons)))
         
     for idx,t in enumerate(imagetimes):
         ts = output.variables['ts'][t,...].flatten()
