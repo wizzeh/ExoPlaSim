@@ -1371,67 +1371,6 @@ def tlstream(dataset,plarad=6371.0e3,grav=9.80665,substellar=0.0):
     #pmid = 0.5*(lev[1:]+lev[:-1])*ps
     return lat_TL,psurf*lev,stf
 
-
-def load(filename,csvbuffersize=1):
-    '''Open a postprocessed ExoPlaSim output file.
-    
-    Supported formats include netCDF, CSV/TXT (can be compressed), NumPy, and HDF5. If the data
-    archive is a group of files that are not tarballed, such as a directory of CSV/TXT or gzipped
-    files, then the filename should be the name of the directory with the final file extension.
-    
-    For example, if the dataset is a group of CSV files in a folder called "MOST_output.002", then
-    `filename` ought to be "MOST_output.002.csv", even though no such file exists.
-    
-    When accessing a file archive comprised of CSV/TXT files such as that described above, only part
-    of the archive will be extracted/read into memory at once, with the exception of the first read,
-    when the entire archive is extracted to read header information. Dimensional arrays, such as 
-    latitude, longitude, etc will be ready into memory and stored as attributes of the returned
-    object (but are accessed with the usual dictionary pattern). Other data arrays however may need to
-    be extracted and read from the archive. A memory buffer exists to hold recently-accessed arrays
-    in memory, which will prioritize the most recently-accessed variables. The number of variables
-    that can be stored in memory can be set with the `csvbuffersize` keyword. The default is 1. This
-    means that the first time the variable is accessed, access times will be roughly the time it takes
-    to extract the file and read it into memory. Subsequent accesses, however, will use RAM speeds.
-    Once the variable has left the buffer, due to other variables being accessed, the next access will
-    return to file access speeds. This behavior is intended to mimic the npz, netcdf, and hdf5 protocols.
-    
-    Parameters
-    ----------
-    filename : str 
-        Path to the file
-    csvbuffersize : int, optional
-        If the file (or group of files) is a file archive such as a directory, tarball, etc, this is
-        the number of variables to keep in a memory buffer when the archive is accessed.
-        
-    Returns
-    -------
-    object
-        ``gmct._Dataset`` object that can be queried like a netCDF file.
-    '''
-    #fileparts = filename.split('.')
-    #if fileparts[-1] == "nc":
-    if type(csvbuffersize)==str: #This is probably a legacy netcdf load mistake
-        try:
-            csvbuffersize = int(csvbuffersize)
-        except:
-            csvbuffersize = 1
-    output=_Dataset(filename,csvbuffersize=csvbuffersize) #Usually _Dataset calls load(), but _Dataset calls _loadnetcdf
-                                  #directly, so here we're going to defer to _Dataset and make use
-                                  #of the close() functionality
-    #elif fileparts[-1] == "npz" or fileparts[-1] == "npy":
-        #output=_loadnpsavez(filename)
-    #elif (fileparts[-1] in ("csv","txt","gz","tar") or \
-          #fileparts[-2]+"."+fileparts[-1] in ("tar.gz","tar.bz2","tar.xz")):
-        #output,meta,files=_loadcsv(filename)
-    #elif fileparts[-1] in ("hdf5","h5","he5"):
-        #output=_loadhdf5(filename)
-    #else:
-        #raise Exception("Unsupported output format detected. Supported formats are:\n%s"%("\n\t".join(SUPPORTED)))
-    
-    
-    return output
-    
-
 def orthographic(lon,lat,imap,central_longitude=0,central_latitude=0,ny=200,nx=200,interp='bilinear'):
     '''Perform an orthographic projection.
     
@@ -1557,9 +1496,9 @@ def orthographic(lon,lat,imap,central_longitude=0,central_latitude=0,ny=200,nx=2
                                 fxy1 = (l2-lamb)/dl*zmap[jlat1,jlon1] + (lamb-l1)/dl*zmap[jlat1,jlon2]
                                 fxy2 = (l2-lamb)/dl*zmap[jlat2,jlon1] + (lamb-l1)/dl*zmap[jlat2,jlon2]
                                 xymap[j,i] = (p2-phi)/dp*fxy1 + (phi-p1)/dp*fxy2
-                        except:
-                            print p1,p2,l1,l2,jlat1,jlat2,jlon1,jlon2
-                            raise
+                        except BaseException as err:
+                            print(p1,p2,l1,l2,jlat1,jlat2,jlon1,jlon2)
+                            raise err
                     else:
                         #print jlat1,jlat2,jlon1,jlon2
                         jlat1=-200
@@ -1570,6 +1509,67 @@ def orthographic(lon,lat,imap,central_longitude=0,central_latitude=0,ny=200,nx=2
                     xymap[j,i] = zmap[jlat,jlon]
                     
     return xymap
+    
+
+
+def load(filename,csvbuffersize=1):
+    '''Open a postprocessed ExoPlaSim output file.
+    
+    Supported formats include netCDF, CSV/TXT (can be compressed), NumPy, and HDF5. If the data
+    archive is a group of files that are not tarballed, such as a directory of CSV/TXT or gzipped
+    files, then the filename should be the name of the directory with the final file extension.
+    
+    For example, if the dataset is a group of CSV files in a folder called "MOST_output.002", then
+    `filename` ought to be "MOST_output.002.csv", even though no such file exists.
+    
+    When accessing a file archive comprised of CSV/TXT files such as that described above, only part
+    of the archive will be extracted/read into memory at once, with the exception of the first read,
+    when the entire archive is extracted to read header information. Dimensional arrays, such as 
+    latitude, longitude, etc will be ready into memory and stored as attributes of the returned
+    object (but are accessed with the usual dictionary pattern). Other data arrays however may need to
+    be extracted and read from the archive. A memory buffer exists to hold recently-accessed arrays
+    in memory, which will prioritize the most recently-accessed variables. The number of variables
+    that can be stored in memory can be set with the `csvbuffersize` keyword. The default is 1. This
+    means that the first time the variable is accessed, access times will be roughly the time it takes
+    to extract the file and read it into memory. Subsequent accesses, however, will use RAM speeds.
+    Once the variable has left the buffer, due to other variables being accessed, the next access will
+    return to file access speeds. This behavior is intended to mimic the npz, netcdf, and hdf5 protocols.
+    
+    Parameters
+    ----------
+    filename : str 
+        Path to the file
+    csvbuffersize : int, optional
+        If the file (or group of files) is a file archive such as a directory, tarball, etc, this is
+        the number of variables to keep in a memory buffer when the archive is accessed.
+        
+    Returns
+    -------
+    object
+        ``gmct._Dataset`` object that can be queried like a netCDF file.
+    '''
+    #fileparts = filename.split('.')
+    #if fileparts[-1] == "nc":
+    if type(csvbuffersize)==str: #This is probably a legacy netcdf load mistake
+        try:
+            csvbuffersize = int(csvbuffersize)
+        except:
+            csvbuffersize = 1
+    output=_Dataset(filename,csvbuffersize=csvbuffersize) #Usually _Dataset calls load(), but _Dataset calls _loadnetcdf
+                                  #directly, so here we're going to defer to _Dataset and make use
+                                  #of the close() functionality
+    #elif fileparts[-1] == "npz" or fileparts[-1] == "npy":
+        #output=_loadnpsavez(filename)
+    #elif (fileparts[-1] in ("csv","txt","gz","tar") or \
+          #fileparts[-2]+"."+fileparts[-1] in ("tar.gz","tar.bz2","tar.xz")):
+        #output,meta,files=_loadcsv(filename)
+    #elif fileparts[-1] in ("hdf5","h5","he5"):
+        #output=_loadhdf5(filename)
+    #else:
+        #raise Exception("Unsupported output format detected. Supported formats are:\n%s"%("\n\t".join(SUPPORTED)))
+    
+    
+    return output
     
 
 #def rhines(U,lat,lon,plarad=6371.0,daylen=15.0,beta=None):
