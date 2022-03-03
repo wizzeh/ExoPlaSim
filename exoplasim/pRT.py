@@ -947,9 +947,10 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             view = _adistance(ilons,ilats,obsv_coords[idx][1],obsv_coords[idx][0])
             #view[view>=np.pi/2.] = np.pi/2.
             viewangles.append(view)
-        viewangles = _adistance(ilons,ilats,obsv_coords[idx][1],obsv_coords[idx][0])
+        #viewangles = _adistance(ilons,ilats,obsv_coords[idx][1],obsv_coords[idx][0])
         
-        for idv,view in enumerate(viewangles):
+        for idv in range(projectedareas.shape[1]):
+            view = viewangles[idv]
             projectedareas[idx,idv,:][view>=np.pi/2] = 0.0
             projectedareas[idx,idv,:][view<np.pi/2] = np.cos(view[view<np.pi/2])*darea[view<np.pi/2]
         
@@ -977,7 +978,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                 photos[idx,i,:] = column[1][:]
         photos[idx,:,:] = makecolors(photos[idx,:,:])
         try:
-            for idv in range(len(viewangles)):
+            for idv in range(projectedareas.shape[1]):
                 view = projectedareas[idx,idv,:]
                 print("Processign view %d"%idv)
                 meanimages[idx,idv,:] = np.average(images[idx,...],axis=0,weights=view)
@@ -987,7 +988,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     images = np.reshape(images,(len(imagetimes),nlat,nlon,len(atmosphere.freq)))
     photos = np.reshape(photos,(len(imagetimes),nlat,nlon,3))
     if debug:
-        projectedareas = np.reshape(projectedareas,(len(imagetimes),len(viewangles),nlat,nlon))
+        projectedareas = np.reshape(projectedareas,(len(imagetimes),len(obsv_coords),nlat,nlon))
         albedomap = np.reshape(albedomap,(len(imagetimes),nlat,nlon,len(surfaces[0])))
         return atmosphere,nc.c/atmosphere.freq*1e4,images,photos,lon,lat,meanimages,albedomap,projectedareas
     else:
