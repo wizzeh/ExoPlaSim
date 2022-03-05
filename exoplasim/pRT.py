@@ -645,7 +645,7 @@ def makeintensities(wvl,fluxes):
     intensities = cmatch.makexyz(wvl*1.0e3,fluxes)
     return intensities
     
-def orennayarcorrection_col(intensity,lon,lat,sollon,sollat,zenith,obsv_coords,albedo,sigma):
+def orennayarcorrection_col(intensity,lon,lat,sollon,sollat,zenith,observer,albedo,sigma):
     '''Correct scattering intensity from Lambertian to full Oren-Nayar.
     
     Parameters
@@ -662,7 +662,7 @@ def orennayarcorrection_col(intensity,lon,lat,sollon,sollat,zenith,obsv_coords,a
         Substellar latitude
     zenith : array-like or float
         Solar zenith angle(s) in degrees
-    obsv_coords : tuple
+    observer : tuple
         (lon,lat) tuple of sub-observer coordinates
     albedo : array-like or float
         Scattering surface reflectivity (0--1)
@@ -710,7 +710,7 @@ def orennayarcorrection_col(intensity,lon,lat,sollon,sollat,zenith,obsv_coords,a
     
     return intensity*L
   
-def orennayarcorrection(intensity,lon,lat,sollon,sollat,zenith,obsv_coords,albedo,sigma):
+def orennayarcorrection(intensity,lon,lat,sollon,sollat,zenith,observer,albedo,sigma):
     '''Correct scattering intensity from Lambertian to full Oren-Nayar.
     
     Parameters
@@ -727,7 +727,7 @@ def orennayarcorrection(intensity,lon,lat,sollon,sollat,zenith,obsv_coords,albed
         Substellar latitude
     zenith : array-like or float
         Solar zenith angle(s) in degrees
-    obsv_coords : tuple
+    observer : tuple
         (lon,lat) tuple of sub-observer coordinates
     albedo : array-like or float
         Scattering surface reflectivity (0--1)
@@ -1708,7 +1708,7 @@ def _hdf5(filename,dataset,logfile=None,append=False):
                 hdfile.attrs[var] = np.array(["transit_spectra_map".encode('utf-8'),
                                               "km".encode('utf-8')],dtype=u8t)
             elif var=="weights":
-                hdfile.attrs[var] = np.array(["transit_column_width".encode('utf-8'),
+                hdfile.attrs[var] = np.array(["column_contribution_weights".encode('utf-8'),
                                               "degrees".encode('utf-8')],dtype=u8t)
         else:
             hdfile[var].resize((hdfile[var].shape[0]+dataset[var].shape[0]),axis=0)
