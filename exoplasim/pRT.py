@@ -880,7 +880,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     
     wvl = nc.c/atmosphere.freq/1e-4
     
-    visible = np.argmin(wvl>830.0)
+    visible = np.argmin(abs(wvl-830.0))
     
     images = np.zeros((len(imagetimes),nlat*nlon,len(atmosphere.freq)))
     influxes = np.zeros((len(imagetimes),nlat*nlon,len(atmosphere.freq)))
