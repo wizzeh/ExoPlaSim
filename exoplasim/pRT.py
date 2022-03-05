@@ -1392,6 +1392,31 @@ def _netcdf(filename,dataset,logfile=None):
                                         least_significant_digit=6)
         longitudes = ncd.createVariable("lon","f4",("lon",), zlib=True, 
                                         least_significant_digit=6)
+        nobsv = dataset["colors"].shape[1] - 1
+        obsv = ncd.createDimension("observer",nobsv)
+        obsvp = ncd.createDimension("observer_plus",nobsv+1)
+        observers = ncd.createVariable("observers","i4",("observer",),zlib=True)
+        observersp= ncd.createVariable("observersp","i4",("observer_plus",),zlib=True)
+        observers.set_auto_mask(False)
+        observersp.set_auto_mask(False)
+        observers.units = "n/a"
+        observersp.units = "n/a"
+        observers.axis = "W"
+        observersp.axis= "W"
+        observers.standard_name = "observer_views"
+        observers.long_name = "observer_view_angles"
+        observersp.standard_name = "lambertian_+_observer_views"
+        observersp.long_name = "lambertian_plus_observer_view_angles"
+        observers[:] = np.arange(nobsv)+1
+        observersp[:]= np.arange(nobsv+1)
+        rgbdim = ncd.createDimension("RGB",3)
+        rgb = ncd.createVariable("rgb","f4",("RGB",),zlib=True,least_significant_digit=6)
+        rgb.set_auto_mask(False)
+        rgb.units = "n/a"
+        rgb.standard_name = "RGB_max"
+        rgb.long_name = "RGB_max_values"
+        rgb[:] = 1.0
+        
     else:
         ncoords = latitude.shape[1]
         coord = ncd.createDimension("coord", ncoords)
@@ -1454,7 +1479,7 @@ def _netcdf(filename,dataset,logfile=None):
         datavar = dataset["colors"]
         dvarmask = datavar[np.isfinite(datavar)]
         dvarmask = dvarmask[dvarmask!=0]
-        photos = ncd.createVariable("colors","f4",("time","lat","lon","RGB"),
+        photos = ncd.createVariable("colors","f4",("time","observersp","lat","lon","RGB"),
                                     zlib=True,least_significant_digit=6)
         photos.set_auto_mask(False)
         photos[:] = datavar[:]
@@ -1472,7 +1497,7 @@ def _netcdf(filename,dataset,logfile=None):
             lsd = max(int(round(abs(np.log10(abs(dvarmask).min()))+0.5))+6,6) #get decimal place of smallest value
             if abs(dvarmask).min()>=1.0:
                 lsd=6
-        spectra = ncd.createVariable("spectra","f8",("time","wvl"),
+        spectra = ncd.createVariable("spectra","f8",("time","observers","wvl"),
                                      zlib=True,least_significant_digit=lsd)
         spectra.set_auto_mask(False)
         spectra[:] = datavar[:]
@@ -1555,7 +1580,7 @@ def _hdf5(filename,dataset,logfile=None,append=False):
            hdfile.create_dataset("lat",data=latitude[:].astype("float32"),compression='gzip',
                                  maxshape=[None,dataset["lat"].shape[1]],compression_opts=9,
                                  shuffle=True,fletcher32=True)
-        hdfile.attrs["lat"] = np.array(["latitude"       ,"degrees"])
+        hdfile.attrs["lat"] = np.array(["latitude"       ,"degrees"],dtype=str)
     elif "transits" in hdfile:
         hdfile["lat"].resize(hdfile["lat"].shape[0]+dataset["lat"].shape[0],axis=0)
         hdfile["lat"][-dataset["lat"].shape[0]:] = dataset["lat"].astype("float32")
@@ -1567,19 +1592,19 @@ def _hdf5(filename,dataset,logfile=None,append=False):
            hdfile.create_dataset("lon",data=longitude[:].astype("float32"),compression='gzip',
                                  maxshape=[None,dataset["lon"].shape[1]],compression_opts=9,
                                  shuffle=True,fletcher32=True)
-        hdfile.attrs["lon"] = np.array(["longitude"      ,"degrees"])
+        hdfile.attrs["lon"] = np.array(["longitude"      ,"degrees"],dtype=str)
     elif "transits" in hdfile:
         hdfile["lon"].resize(hdfile["lon"].shape[0]+dataset["lon"].shape[0],axis=0)
         hdfile["lon"][-dataset["lon"].shape[0]:] = dataset["lon"].astype("float32")
     if "wvl" not in hdfile:
         hdfile.create_dataset("wvl",data=wvls[:].astype("float32"),compression='gzip',
                             compression_opts=9,shuffle=True,fletcher32=True)
-        hdfile.attrs["wvl"] = np.array(["wavelength"     ,"microns"])
+        hdfile.attrs["wvl"] = np.array(["wavelength"     ,"microns"],dtype=str)
     if "time" not in hdfile:
         hdfile.create_dataset("time",data=time[:].astype("float32"),compression='gzip',
                             maxshape=(None,),compression_opts=9,
                             shuffle=True,fletcher32=True)
-        hdfile.attrs["time"]= np.array(["obsv_time_index","indices"])
+        hdfile.attrs["time"]= np.array(["obsv_time_index","indices"],dtype=str)
     else:
         hdfile["time"].resize((hdfile["time"].shape[0]+len(time)),axis=0)
         hdfile["time"][-len(time):] = time[:]
@@ -1602,17 +1627,17 @@ def _hdf5(filename,dataset,logfile=None,append=False):
                                   maxshape=maxshape,compression_opts=9,shuffle=True,
                                   fletcher32=True)
             if "images" in keyvars and var=="spectra":
-                hdfile.attrs[var] = np.array(["image_spectrum_avg","erg cm-2 s-1 Hz-1"])
+                hdfile.attrs[var] = np.array(["image_spectrum_avg","erg cm-2 s-1 Hz-1"],dtype=str)
             elif "transits" in keyvars and var=="spectra":
-                hdfile.attrs[var] = np.array(["transit_spectrum_avg","km"])
+                hdfile.attrs[var] = np.array(["transit_spectrum_avg","km"],dtype=str)
             elif var=="images":
-                hdfile.attrs[var] = np.array(["image_spectra_map","erg cm-2 s-1 Hz-1"])
+                hdfile.attrs[var] = np.array(["image_spectra_map","erg cm-2 s-1 Hz-1"],dtype=str)
             elif var=="colors":
-                hdfile.attrs[var] = np.array(["true_color_image","RGB"])
+                hdfile.attrs[var] = np.array(["true_color_image","RGB"],dtype=str)
             elif var=="transits":
-                hdfile.attrs[var] = np.array(["transit_spectra_map","km"])
+                hdfile.attrs[var] = np.array(["transit_spectra_map","km"],dtype=str)
             elif var=="weights":
-                hdfile.attrs[var] = np.array(["transit_column_width","degrees"])
+                hdfile.attrs[var] = np.array(["transit_column_width","degrees"],dtype=str)
         else:
             hdfile[var].resize((hdfile[var].shape[0]+dataset[var].shape[0]),axis=0)
             hdfile[var][-dataset[var].shape[0]:] = dataset[var].astype("float64")
