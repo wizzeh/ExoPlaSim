@@ -741,7 +741,7 @@ def makecolors(intensities):
     
 def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.80665, 
             Tstar=5778.0,Rstar=1.0,orbdistances=1.0,h2o_lines='HITEMP',
-            num_cpus=4,cloudfunc=None,smooth=True,smoothweight=0.90,
+            num_cpus=4,cloudfunc=None,smooth=True,smoothweight=0.50,
             stellarspec=None,ozone=False,stepsperyear=11520.,logfile=None,debug=False,
             orennayar=True,sigma=None):
     '''Compute reflection+emission spectra for snapshot output
@@ -1085,7 +1085,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             influx = inrad*visfreq[np.newaxis,:]
             print(influx.shape,reflectivity.shape)
             convolved = influx*reflectivity
-            broadrefl = np.trapz(convolved,dx=viswvl,axis=1)/np.trapz(influx,dx=viswvl,axis=1)
+            broadrefl = np.trapz(convolved,x=viswvl,axis=1)/np.trapz(influx,x=viswvl,axis=1)
             if orennayar and sigma.max()>0.0:                                            
                 for idv in range(observers.shape[0]):
                     args = zip(photos[idx,0,:,2].flatten(),ilons,ilats,
@@ -1112,7 +1112,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             reflectivity = outrad/inrad
             influx = inrad*visfreq[np.newaxis,:]
             convolved = influx*reflectivity
-            broadrefl = np.trapz(convolved,dx=viswvl,axis=1)/np.trapz(influx,dx=viswvl,axis=1)
+            broadrefl = np.trapz(convolved,x=viswvl,axis=1)/np.trapz(influx,x=viswvl,axis=1)
             if orennayar and sigma.max()>0.0:
                 for idv in range(observers.shape[0]):
                     photos[idx,idv+1,:,2] = orennayarcorrection(photos[idx,0,:,2],ilons,ilats,sollon,sollat,
