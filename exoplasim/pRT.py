@@ -609,9 +609,14 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
     atmosphere.calc_flux(extta, mass_fractions, gravity, MMW,
                          geometry='non-isotropic',**kwargs)
     
-    intensities = makeintensities(nc.c/atmosphere.freq/1e-4,atmosphere.flux*1e6)
+    wvl = nc.c/atmosphere.freq/1e-4 #wavelength in microns
     
-    return atmosphere.flux*1e6,intensities #erg cm-2 s-1 Hz-1
+    intensities = makeintensities(wvl,atmosphere.flux*1e6*(atmosphere.freq)*1.0e-3/wvl) 
+                                                           #1e-3 for cm-2 erg s-1 -> W m-2
+    #We need to give the spectrum in W m-2 um-1
+    
+    return atmosphere.flux*1e6,intensities,\
+           atmosphere.stellar_intensity*np.maximum(0.0,np.cos(zenith*np.pi/180.))*np.pi*1e6 #erg cm-2 s-1 Hz-1
 
 
 def _lognorm(x):
@@ -640,16 +645,81 @@ def makeintensities(wvl,fluxes):
     intensities = cmatch.makexyz(wvl*1.0e3,fluxes)
     return intensities
     
+def orennayarcorrection(intensity,lon,lat,sollon,sollat,zenith,obsv_coords,albedo,sigma):
+    '''Correct scattering intensity from Lambertian to full Oren-Nayar.
+    
+    Parameters
+    ----------
+    intensity : array-like or float
+        Intensity to correct
+    lon : array-like or float
+        Column(s) longitude in degrees
+    lat : array-like or float
+        Column(s) latitude in degrees
+    sollon : float
+        Substellar longitude
+    sollat : float
+        Substellar latitude
+    zenith : array-like or float
+        Solar zenith angle(s) in degrees
+    obsv_coords : tuple
+        (lon,lat) tuple of sub-observer coordinates
+    albedo : array-like or float
+        Scattering surface reflectivity (0--1)
+    sigma : array-like or float
+        Scattering surface roughness. 0.0 is Lambertian, 0.97 is the maximum energy-conserving roughness. 0.25-0.3 is appropriate for many planetary bodies.
+    
+    Returns
+    -------
+    array-like
+        Corrected intensity of the same shape as the input intensity
+    '''
+    theta = zenith*np.pi/180.0
+    rlatz = sollat*np.pi/180.
+    rlonz = sollon*np.pi/180.
+    rlons = lon*np.pi/180.
+    rlats = lat*np.pi/180.
+    phi = np.arctan2(-np.cos(rlatz)*np.sin(rlonz-rlons),
+                     -(np.sin(rlatz)*np.cos(rlats)-np.cos(rlatz)*np.sin(rlats)*np.cos(rlonz-rlons)))
+    if phi<0:
+        phi+=2*np.pi
+    
+    rlono = observer[0]*np.pi/180.
+    rlato = observer[1]*np.pi/180.
+    otheta = np.arccos(np.sin(rlats)*np.sin(rlato)+np.cos(rlats)*np.cos(rlato)*np.cos(rlono-rlons))
+    if otheta>np.pi/2.:
+        return 0.0
+    ophi = np.arctan2(-np.cos(rlato)*np.sin(rlono-rlons),
+                      -(np.sin(rlato)*np.cos(rlats)-np.cos(rlato)*np.sin(rlats)*np.cos(rlono-rlons)))
+    if ophi<0:
+        ophi+=2*np.pi
+    
+    a = max(theta,otheta)
+    b = min(theta,otheta)
+    
+    dphi = phi-ophi
+    
+    c1 = 1 - 0.5*sigma**2/(sigma**2+0.33)
+    c2 = 0.45*(sigma**2/(sigma**2+0.05))*(np.sin(a)-(2*b/np.pi)**2*(np.cos(dphi)<0))
+    c3 = 0.125*(sigma**2/(sigma**2+0.09))*(4*a*b/np.pi**2)**2
+    
+    L1coeff = (c1 + np.cos(dphi)*min(10.,np.tan(b))*c2 +\ 
+                      (1-abs(np.cos(dphi))*min(10.,np.tan((a+b)/2.)))*c3)
+    L2coeff = albedo*(0.17*(sigma**2/(sigma**2+0.13))*(1-np.cos(dphi)*(2*b/np.pi)**2))
+    L = L1coeff+L2coeff
+    
+    return intensity*L
+
 def makecolors(intensities):
     '''Convert (x,y,Y) intensities to RGB values.
     
     Uses CIE color-matching functions and a wide-gamut RGB colorspace to
-    convert XYZ-coordinate color intensities to RGB intensities, log-normalized.
+    convert XYZ-coordinate color intensities to RGB intensities.
     
     Parameters
     ----------
     intensities : array-like
-        Must have shape (N,3)--array of (x,y,Y) intensities
+        Last index must have length 3--array of (x,y,Y) intensities
         
     Returns
     -------
@@ -657,15 +727,13 @@ def makecolors(intensities):
         RGB color values.
     '''
     
-    norms = _lognorm(intensities[...,2]/np.nanmax(intensities[...,2]))
     ogshape = intensities.shape
-    flatnorms = norms.flatten()
-    flatshape = len(flatnorms)
+    flatshape = np.product(ogshape[:-1])
     flatintensities = np.reshape(intensities,(flatshape,3))
     colors = np.zeros((flatshape,3))
     for k in range(flatshape):
         colors[k,:] = cmatch.xyz2rgb(flatintensities[k,0],flatintensities[k,1],
-                                         flatintensities[k,2]*flatnorms[k])
+                                     flatintensities[k,2])
     colors /= np.nanmax(colors)
     colors = np.reshape(colors,ogshape)
     return colors
@@ -674,7 +742,8 @@ def makecolors(intensities):
 def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.80665, 
             Tstar=5778.0,Rstar=1.0,orbdistances=1.0,h2o_lines='HITEMP',
             num_cpus=4,cloudfunc=None,smooth=True,smoothweight=0.90,
-            stellarspec=None,ozone=False,stepsperyear=11520.,logfile=None,debug=False):
+            stellarspec=None,ozone=False,stepsperyear=11520.,logfile=None,debug=False,
+            orennayar=True,sigma=None):
     '''Compute reflection+emission spectra for snapshot output
     
     This routine computes the reflection+emission spectrum for the planet at each
@@ -696,10 +765,10 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         List of time indices at which the image should be computed.
     gases_vmr : dict
         Dictionary of gas species volume mixing ratios for the atmosphere
-    obsv_coords : list
+    obsv_coords : numpy.ndarray (3D)
         List of observer (lat,lon) coordinates for each
-        observing time. Each item can either be a lat-lon tuple or a list of tuples
-        (you can have multiple observers per snapshot). These are the surface coordinates 
+        observing time. First axis is time, second axis is for each observer; the third axis is 
+        for lat and lon. Should have shape (time,observers,lat-lon). These are the surface coordinates 
         that are directly facing the observer. 
     gascon : float, optional
         Specific gas constant
@@ -744,6 +813,16 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         "varseason" to 0.
     stepsperyear : int or float, optional
         Number of timesteps per sidereal year. Only used for computing ozone seasonality.
+    orennayar : bool, optional
+        If True, compute true-colour intensity using Oren-Nayar scattering instead of Lambertian scattering.
+        Most solar system bodies do not exhibit Lambertian scattering.
+    sigma : float, optional
+        If not None and `orennayar` is `True`, then this sets the roughness parameter for Oren-Nayar scattering.
+        `sigma=0` is the limit of Lambertian scattering, while `sigma=0.97` is the limit for energy 
+        conservation. `sigma` is the standard deviation of the distribution of microfacet normal angles relative
+        to the mean, normalized such that `sigma=1.0` would imply truly isotropic microfacet distribution.
+        If sigma is None (default), then sigma is determined based on the surface type in a column and
+        whether clouds are present, using 0.4 for ground, 0.1 for ocean, 0.9 for snow/ice, and 0.95 for clouds.
         
     Returns
     -------
@@ -799,9 +878,14 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     nlat = len(lat)
     ncols = nlon*nlat
     
+    wvl = nc.c/atmosphere.freq/1e-4
+    
+    visible = np.argmin(wvl>830.0)
+    
     images = np.zeros((len(imagetimes),nlat*nlon,len(atmosphere.freq)))
-    photos = np.zeros((len(imagetimes),nlat*nlon,3))
-    meanimages = np.zeros((len(imagetimes),len(obsv_coords),len(atmosphere.freq)))
+    influxes = np.zeros((len(imagetimes),nlat*nlon,len(atmosphere.freq)))
+    photos = np.zeros((len(imagetimes),obsv_coords.shape[1]+1,nlat*nlon,3))
+    meanimages = np.zeros((len(imagetimes),obsv_coords.shape[1],len(atmosphere.freq)))
     
     lev = output.variables['lev'][:]
     tas = np.transpose(output.variables['ta'][:],axes=(0,2,3,1))
@@ -841,13 +925,19 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                 spec.modelspecs["oceanblend"],
                 spec.modelspecs["iceblend"]]
     
+    
     sfcalbedo = surfaces[1][np.newaxis,:]*lsm[:,np.newaxis] + surfaces[0][np.newaxis,:]*(1-lsm)[:,np.newaxis]
+    
+    if orennayar and sigma is None:
+        sigmas = [0.4,0.1,0.9,0.95] #roughnesses for ground,ocean,ice/snow,and clouds
+        sfcsigmas = sigmas[1]*lsm + sigmas[0]*(1-lsm)
     
     if debug:
         albedomap = np.zeros((len(imagetimes),nlon*nlat,len(surfaces[0])))
     #sfcalbedo = sfcalbedo.flatten()
     
-    projectedareas = np.zeros((len(imagetimes),len(obsv_coords),len(ilons)))
+    projectedareas = np.zeros((len(imagetimes),obsv_coords.shape[1],len(ilons)))
+    observers = np.zeros((obsv_coords.shape[1],2))
         
     for idx,t in enumerate(imagetimes):
         ts = output.variables['ts'][t,...].flatten()
@@ -908,11 +998,21 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         zenith[nightside<=0.5] = np.minimum(zenith[nightside<=0.5],90.0-360.0/nlon*0.5) #dawn/dusk angle due to finite resolution
         zenith = zenith.flatten()
         
+        subsolar = np.argwhere(czen==np.max(czen))
+        lonsmax = []
+        latsmax = []
+        for ang in subsolar:
+            lonsmax.append(lon[ang[1]])
+            latsmax.append(lat[ang[0]])
+        sollon = np.mean(np.unique(lonsmax)) #substellar longitude
+        sollat = np.mean(np.unique(latsmax)) #substellar latitude
+        
         albedo = output.variables['alb'][t,...].flatten()
         ice = output.variables['sit'][t,...]+output.variables['snd'][t,...]
         ice = ice.flatten()
         #icemap = 2.0*(ice>0.001) #1 mm probably not enough to make everything white
         ice = np.minimum(ice/0.02,1.0) #0-1 with a cap at 2 cm of snow
+        snow = 1.0*(output.variables['snd']t,...].flatten()>0.02)
         #sfctype = np.maximum(sea,icemap).astype(int)
            # Sea with no ice:  1
            # Sea with ice:     2
@@ -926,6 +1026,17 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                      surfaces[2][np.newaxis,:]*(output.variables['sic'][t,...].flatten())[:,np.newaxis])
         surfspecs = (surfspecs*(1-ice)[:,np.newaxis] + surfaces[2][np.newaxis,:]*ice[:,np.newaxis])
         
+        if orennayar and sigma is None:
+            surfsigmas = (sfcsigmas*(1-output.variables['sic'][t,...].flatten())+
+                        sigmas[2]*(output.variables['sic'][t,...].flatten()))
+            surfsigmas = (surfsigmas*(1-snow) + sigmas[2]*snow)
+        
+            clt = output.variables['clt'][t,...].flatten()
+        
+            sigma = (surfsigmas*(1-clt) + clt*sigmas[3])
+        elif orennayar and sigma is not None:
+            sigma = np.ones_like(ice)*sigma
+        
         for n in range(len(albedo)):
             bol_alb = np.trapz(stellarspec*surfspecs[n,:],x=spec.wvl)/ \
                       np.trapz(stellarspec,x=spec.wvl)
@@ -936,23 +1047,21 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             albedomap[idx,:,:] = surfspecs[:,:]
             
         viewangles = []
-        try:
-            test = len(obsv_coords[idx][0]) #If this fails, then we only have one set of coordinates
-            
-            for coord in obsv_coords[idx]:
-                view = _adistance(ilons,ilats,coord[1],coord[0])
-                view[view>=np.pi/2.] = np.pi/2.
-                viewangles.append(view)
-        except:
-            view = _adistance(ilons,ilats,obsv_coords[idx][1],obsv_coords[idx][0])
-            #view[view>=np.pi/2.] = np.pi/2.
+        for idv in range(obsv_coords.shape[1]):
+            coord = obsv_coords[idx,idv,:]
+            view = _adistance(ilons,ilats,coord[1],coord[0])
+            view[view>=np.pi/2.] = np.pi/2.
             viewangles.append(view)
+            observers[idv,0] = coord[0]
+            observers[idv,1] = coord[1]
+            
         #viewangles = _adistance(ilons,ilats,obsv_coords[idx][1],obsv_coords[idx][0])
         
         for idv in range(projectedareas.shape[1]):
             view = viewangles[idv]
             projectedareas[idx,idv,:][view>=np.pi/2] = 0.0
             projectedareas[idx,idv,:][view<np.pi/2] = np.cos(view[view<np.pi/2])*darea[view<np.pi/2]
+        
         
         if num_cpus>1:
             args = zip(repeat(atmosphere),pa,surfspecs,ta,hus,dql,repeat(gases_vmr),
@@ -963,8 +1072,21 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             with mp.Pool(num_cpus) as pool:
                 spectra = pool.starmap(_imgcolumn,args)
             for i,column in enumerate(spectra):
-                images[idx,i,:] = column[0][:]
-                photos[idx,i,:] = column[1][:]
+                images[idx,  i,:] = column[0][:]
+                photos[idx,0,i,:] = column[1][:]
+                influxes[idx,i,:] = column[2][:]
+            reflectivity = (images[idx,...]/influxes[idx,...])[:,:visible]
+            broadrefl = np.trapz(influxes[idx,:,:visible]*atmosphere.freq[:visible] * reflectivity,dx=wvl)\
+                        /np.trapz(influxes[idx,:,:visible]*atmosphere.freq[:visible],dx=wvl)
+            if orennayar and sigma.max()>0.0:                                            
+                for idv in range(observers.shape[0]):
+                    args = zip(photos[idx,0,:,2].flatten(),ilons,ilats,
+                               repeat(sollon),repeat(sollat),zenith,
+                               repeat(observers[idv,:]),broadrefl,sigma)
+                    with mp.Pool(num_cpus) as pool:
+                        correctedI = pool.starmap(orennayarcorrection_col,args)
+                    photos[idx,idv+1,:,2] = correctedI[:]
+            
         else:
             for i in range(ncols):
                 column = _imgcolumn(atmosphere,pa[i,:],surfspecs[i,:],
@@ -974,9 +1096,19 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                                     starseparation*nc.AU,zenith[i],
                                     cloudfunc,smooth,smoothweight,o3[i],
                                     bo3,co3,i)
-                images[idx,i,:] = column[0][:]
-                photos[idx,i,:] = column[1][:]
-        photos[idx,:,:] = makecolors(photos[idx,:,:])
+                images[idx,  i,:] = column[0][:]
+                photos[idx,0,i,:] = column[1][:]
+                influxes[idx,i,:] = column[2][:]
+            reflectivity = (images[idx,...]/influxes[idx,...])[:,:visible]
+            broadrefl = np.trapz(influxes[idx,:,:visible]*atmosphere.freq[:visible] * reflectivity,dx=wvl)\
+                        /np.trapz(influxes[idx,:,:visible]*atmosphere.freq[:visible],dx=wvl)
+            if orennayar and sigma.max()>0.0:
+                for idv in range(observers.shape[0]):
+                    photos[idx,idv+1,:,2] = orennayarcorrection(photos[idx,0,:,2],ilons,ilats,sollon,sollat,
+                                                                zenith,observers[idv,:],broadrefl,sigma)
+        
+        photos[idx,...] = makecolors(photos[idx,...])
+        
         try:
             for idv in range(projectedareas.shape[1]):
                 view = projectedareas[idx,idv,:]
@@ -986,9 +1118,9 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             print("Error computing disk-averaged means")
             print(err)
     images = np.reshape(images,(len(imagetimes),nlat,nlon,len(atmosphere.freq)))
-    photos = np.reshape(photos,(len(imagetimes),nlat,nlon,3))
+    photos = np.reshape(photos,(len(imagetimes),obsv_coords.shape[1]+1,nlat,nlon,3))
     if debug:
-        projectedareas = np.reshape(projectedareas,(len(imagetimes),len(obsv_coords),nlat,nlon))
+        projectedareas = np.reshape(projectedareas,(len(imagetimes),obsv_coords.shape[1],nlat,nlon))
         albedomap = np.reshape(albedomap,(len(imagetimes),nlat,nlon,len(surfaces[0])))
         return atmosphere,nc.c/atmosphere.freq*1e4,images,photos,lon,lat,meanimages,albedomap,projectedareas
     else:
