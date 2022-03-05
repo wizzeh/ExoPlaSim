@@ -1571,7 +1571,7 @@ def _hdf5(filename,dataset,logfile=None,append=False):
     if append:
         mode = "a"
     hdfile = h5py.File(filename,mode)
-    
+    u8t = h5py.string_dtype('utf-8', 32)
     if "lat" not in hdfile:
         if "images" in dataset:
            hdfile.create_dataset("lat",data=latitude[:].astype("float32"),compression='gzip',
@@ -1580,7 +1580,7 @@ def _hdf5(filename,dataset,logfile=None,append=False):
            hdfile.create_dataset("lat",data=latitude[:].astype("float32"),compression='gzip',
                                  maxshape=[None,dataset["lat"].shape[1]],compression_opts=9,
                                  shuffle=True,fletcher32=True)
-        hdfile.attrs["lat"] = np.array(["latitude"       ,"degrees"],dtype=str)
+        hdfile.attrs["lat"] = np.array(["latitude".encode('utf-8') ,"degrees".encode('utf-8')],dtype=u8t)
     elif "transits" in hdfile:
         hdfile["lat"].resize(hdfile["lat"].shape[0]+dataset["lat"].shape[0],axis=0)
         hdfile["lat"][-dataset["lat"].shape[0]:] = dataset["lat"].astype("float32")
@@ -1592,19 +1592,19 @@ def _hdf5(filename,dataset,logfile=None,append=False):
            hdfile.create_dataset("lon",data=longitude[:].astype("float32"),compression='gzip',
                                  maxshape=[None,dataset["lon"].shape[1]],compression_opts=9,
                                  shuffle=True,fletcher32=True)
-        hdfile.attrs["lon"] = np.array(["longitude"      ,"degrees"],dtype=str)
+        hdfile.attrs["lon"] = np.array(["longitude".encode('utf-8') ,"degrees".encode('utf-8')],dtype=u8t)
     elif "transits" in hdfile:
         hdfile["lon"].resize(hdfile["lon"].shape[0]+dataset["lon"].shape[0],axis=0)
         hdfile["lon"][-dataset["lon"].shape[0]:] = dataset["lon"].astype("float32")
     if "wvl" not in hdfile:
         hdfile.create_dataset("wvl",data=wvls[:].astype("float32"),compression='gzip',
                             compression_opts=9,shuffle=True,fletcher32=True)
-        hdfile.attrs["wvl"] = np.array(["wavelength"     ,"microns"],dtype=str)
+        hdfile.attrs["wvl"] = np.array(["wavelength".encode('utf-8') ,"microns".encode('utf-8')],dtype=u8t)
     if "time" not in hdfile:
         hdfile.create_dataset("time",data=time[:].astype("float32"),compression='gzip',
                             maxshape=(None,),compression_opts=9,
                             shuffle=True,fletcher32=True)
-        hdfile.attrs["time"]= np.array(["obsv_time_index","indices"],dtype=str)
+        hdfile.attrs["time"]= np.array(["obsv_time_index".encode('utf-8'),"indices".encode('utf-8')],dtype=u8t)
     else:
         hdfile["time"].resize((hdfile["time"].shape[0]+len(time)),axis=0)
         hdfile["time"][-len(time):] = time[:]
@@ -1627,17 +1627,23 @@ def _hdf5(filename,dataset,logfile=None,append=False):
                                   maxshape=maxshape,compression_opts=9,shuffle=True,
                                   fletcher32=True)
             if "images" in keyvars and var=="spectra":
-                hdfile.attrs[var] = np.array(["image_spectrum_avg","erg cm-2 s-1 Hz-1"],dtype=str)
+                hdfile.attrs[var] = np.array(["image_spectrum_avg".encode('utf-8'),
+                                              "erg cm-2 s-1 Hz-1".encode('utf-8')],dtype=u8t)
             elif "transits" in keyvars and var=="spectra":
-                hdfile.attrs[var] = np.array(["transit_spectrum_avg","km"],dtype=str)
+                hdfile.attrs[var] = np.array(["transit_spectrum_avg".encode('utf-8'),
+                                              "km".encode('utf-8')],dtype=u8t)
             elif var=="images":
-                hdfile.attrs[var] = np.array(["image_spectra_map","erg cm-2 s-1 Hz-1"],dtype=str)
+                hdfile.attrs[var] = np.array(["image_spectra_map".encode('utf-8'),
+                                              "erg cm-2 s-1 Hz-1".encode('utf-8')],dtype=u8t)
             elif var=="colors":
-                hdfile.attrs[var] = np.array(["true_color_image","RGB"],dtype=str)
+                hdfile.attrs[var] = np.array(["true_color_image".encode('utf-8'),
+                                              "RGB".encode('utf-8')],dtype=u8t)
             elif var=="transits":
-                hdfile.attrs[var] = np.array(["transit_spectra_map","km"],dtype=str)
+                hdfile.attrs[var] = np.array(["transit_spectra_map".encode('utf-8'),
+                                              "km".encode('utf-8')],dtype=u8t)
             elif var=="weights":
-                hdfile.attrs[var] = np.array(["transit_column_width","degrees"],dtype=str)
+                hdfile.attrs[var] = np.array(["transit_column_width".encode('utf-8'),
+                                              "degrees".encode('utf-8')],dtype=u8t)
         else:
             hdfile[var].resize((hdfile[var].shape[0]+dataset[var].shape[0]),axis=0)
             hdfile[var][-dataset[var].shape[0]:] = dataset[var].astype("float64")
