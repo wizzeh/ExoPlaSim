@@ -1078,9 +1078,12 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                 photos[idx,0,i,:] = column[1][:]
                 influxes[idx,i,:] = column[2][:]
             inrad = influxes[idx,:,:visible]
-            outrad = images[idx,:,:visible]
+            outrad  = images[idx,:,:visible]
             reflectivity = outrad/inrad
+            reflectivity[inrad==0] = 0.0
+            print(inrad.shape,visfreq.shape)
             influx = inrad*visfreq[np.newaxis,:]
+            print(influx.shape,reflectivity.shape)
             convolved = influx*reflectivity
             broadrefl = np.trapz(convolved,dx=viswvl,axis=1)/np.trapz(influx,dx=viswvl,axis=1)
             if orennayar and sigma.max()>0.0:                                            
