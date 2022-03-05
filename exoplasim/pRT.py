@@ -645,7 +645,7 @@ def makeintensities(wvl,fluxes):
     intensities = cmatch.makexyz(wvl*1.0e3,fluxes)
     return intensities
     
-def orennayarcorrection(intensity,lon,lat,sollon,sollat,zenith,obsv_coords,albedo,sigma):
+def orennayarcorrection_col(intensity,lon,lat,sollon,sollat,zenith,obsv_coords,albedo,sigma):
     '''Correct scattering intensity from Lambertian to full Oren-Nayar.
     
     Parameters
@@ -707,6 +707,69 @@ def orennayarcorrection(intensity,lon,lat,sollon,sollat,zenith,obsv_coords,albed
                       (1-abs(np.cos(dphi))*min(10.,np.tan((a+b)/2.)))*c3)
     L2coeff = albedo*(0.17*(sigma**2/(sigma**2+0.13))*(1-np.cos(dphi)*(2*b/np.pi)**2))
     L = L1coeff+L2coeff
+    
+    return intensity*L
+  
+def orennayarcorrection(intensity,lon,lat,sollon,sollat,zenith,obsv_coords,albedo,sigma):
+    '''Correct scattering intensity from Lambertian to full Oren-Nayar.
+    
+    Parameters
+    ----------
+    intensity : array-like or float
+        Intensity to correct
+    lon : array-like or float
+        Column(s) longitude in degrees
+    lat : array-like or float
+        Column(s) latitude in degrees
+    sollon : float
+        Substellar longitude
+    sollat : float
+        Substellar latitude
+    zenith : array-like or float
+        Solar zenith angle(s) in degrees
+    obsv_coords : tuple
+        (lon,lat) tuple of sub-observer coordinates
+    albedo : array-like or float
+        Scattering surface reflectivity (0--1)
+    sigma : array-like or float
+        Scattering surface roughness. 0.0 is Lambertian, 0.97 is the maximum energy-conserving roughness. 0.25-0.3 is appropriate for many planetary bodies.
+    
+    Returns
+    -------
+    array-like
+        Corrected intensity of the same shape as the input intensity
+    '''
+    theta = zenith*np.pi/180.0
+    rlatz = sollat*np.pi/180.
+    rlonz = sollon*np.pi/180.
+    rlons = lon*np.pi/180.
+    rlats = lat*np.pi/180.
+    phi = np.arctan2(-np.cos(rlatz)*np.sin(rlonz-rlons),
+                     -(np.sin(rlatz)*np.cos(rlats)-np.cos(rlatz)*np.sin(rlats)*np.cos(rlonz-rlons)))
+    phi[phi<0]+=2*np.pi
+    
+    rlono = observer[0]*np.pi/180.
+    rlato = observer[1]*np.pi/180.
+    otheta = np.arccos(np.sin(rlats)*np.sin(rlato)+np.cos(rlats)*np.cos(rlato)*np.cos(rlono-rlons))
+    ophi = np.arctan2(-np.cos(rlato)*np.sin(rlono-rlons),
+                      -(np.sin(rlato)*np.cos(rlats)-np.cos(rlato)*np.sin(rlats)*np.cos(rlono-rlons)))
+    ophi[ophi<0]+=2*np.pi
+    
+    a = max(theta,otheta)
+    b = min(theta,otheta)
+    
+    dphi = phi-ophi
+    
+    c1 = 1 - 0.5*sigma**2/(sigma**2+0.33)
+    c2 = 0.45*(sigma**2/(sigma**2+0.05))*(np.sin(a)-(2*b/np.pi)**2*(np.cos(dphi)<0))
+    c3 = 0.125*(sigma**2/(sigma**2+0.09))*(4*a*b/np.pi**2)**2
+    
+    L1coeff = (c1 + np.cos(dphi)*min(10.,np.tan(b))*c2 +\
+                      (1-abs(np.cos(dphi))*min(10.,np.tan((a+b)/2.)))*c3)
+    L2coeff = albedo*(0.17*(sigma**2/(sigma**2+0.13))*(1-np.cos(dphi)*(2*b/np.pi)**2))
+    L = L1coeff+L2coeff
+    
+    L[otheta>np.pi/2.] = 0.0
     
     return intensity*L
 
@@ -1638,6 +1701,9 @@ def _hdf5(filename,dataset,logfile=None,append=False):
             elif var=="colors":
                 hdfile.attrs[var] = np.array(["true_color_image".encode('utf-8'),
                                               "RGB".encode('utf-8')],dtype=u8t)
+            elif var=="albedomap":
+                hdfile.attrs[var] = np.array(["observed_reflectivity".encode('utf-8'),
+                                              "dimensionless".encode('utf-8')],dtype=u8t)
             elif var=="transits":
                 hdfile.attrs[var] = np.array(["transit_spectra_map".encode('utf-8'),
                                               "km".encode('utf-8')],dtype=u8t)
