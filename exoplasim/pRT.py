@@ -703,7 +703,7 @@ def orennayarcorrection(intensity,lon,lat,sollon,sollat,zenith,obsv_coords,albed
     c2 = 0.45*(sigma**2/(sigma**2+0.05))*(np.sin(a)-(2*b/np.pi)**2*(np.cos(dphi)<0))
     c3 = 0.125*(sigma**2/(sigma**2+0.09))*(4*a*b/np.pi**2)**2
     
-    L1coeff = (c1 + np.cos(dphi)*min(10.,np.tan(b))*c2 +\ 
+    L1coeff = (c1 + np.cos(dphi)*min(10.,np.tan(b))*c2 +\
                       (1-abs(np.cos(dphi))*min(10.,np.tan((a+b)/2.)))*c3)
     L2coeff = albedo*(0.17*(sigma**2/(sigma**2+0.13))*(1-np.cos(dphi)*(2*b/np.pi)**2))
     L = L1coeff+L2coeff
