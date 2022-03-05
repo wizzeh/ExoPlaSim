@@ -1076,8 +1076,9 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                 photos[idx,0,i,:] = column[1][:]
                 influxes[idx,i,:] = column[2][:]
             reflectivity = (images[idx,...]/influxes[idx,...])[:,:visible]
-            broadrefl = np.trapz(influxes[idx,:,:visible]*atmosphere.freq[:visible] * reflectivity,dx=wvl)\
-                        /np.trapz(influxes[idx,:,:visible]*atmosphere.freq[:visible],dx=wvl)
+            broadrefl = np.trapz(influxes[idx,:,:visible]*atmosphere.freq[np.newaxis,:visible] * reflectivity,
+                                 dx=wvl,axis=1)\
+                        /np.trapz(influxes[idx,:,:visible]*atmosphere.freq[np.newaxis,:visible],dx=wvl,axis=1)
             if orennayar and sigma.max()>0.0:                                            
                 for idv in range(observers.shape[0]):
                     args = zip(photos[idx,0,:,2].flatten(),ilons,ilats,
@@ -1100,8 +1101,9 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                 photos[idx,0,i,:] = column[1][:]
                 influxes[idx,i,:] = column[2][:]
             reflectivity = (images[idx,...]/influxes[idx,...])[:,:visible]
-            broadrefl = np.trapz(influxes[idx,:,:visible]*atmosphere.freq[:visible] * reflectivity,dx=wvl)\
-                        /np.trapz(influxes[idx,:,:visible]*atmosphere.freq[:visible],dx=wvl)
+            broadrefl = np.trapz(influxes[idx,:,:visible]*atmosphere.freq[np.newaxis,:visible] * reflectivity,
+                                 dx=wvl,axis=1)\
+                        /np.trapz(influxes[idx,:,:visible]*atmosphere.freq[np.newaxis,:visible],dx=wvl,axis=1)
             if orennayar and sigma.max()>0.0:
                 for idv in range(observers.shape[0]):
                     photos[idx,idv+1,:,2] = orennayarcorrection(photos[idx,0,:,2],ilons,ilats,sollon,sollat,
