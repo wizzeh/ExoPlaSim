@@ -1012,7 +1012,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         ice = ice.flatten()
         #icemap = 2.0*(ice>0.001) #1 mm probably not enough to make everything white
         ice = np.minimum(ice/0.02,1.0) #0-1 with a cap at 2 cm of snow
-        snow = 1.0*(output.variables['snd']t,...].flatten()>0.02)
+        snow = 1.0*(output.variables['snd'][t,...].flatten()>0.02)
         #sfctype = np.maximum(sea,icemap).astype(int)
            # Sea with no ice:  1
            # Sea with ice:     2
