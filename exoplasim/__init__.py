@@ -1073,27 +1073,27 @@ class Model(object):
         try:
             if len(kwargs.keys())==0 and self._configuredpostprocessor[ftype]:
                 kwargs = self.postprocessorcfgs[ftype]
-            transit= False
-            image  = False
-            transit=self.pRTopts[ftype]['transit']
-            image  =self.pRTopts[ftype]['image']
-            pRTkwargs = dict(self.pRTopts[ftype])
-            del pRTkwargs['transit']
-            del pRTkwargs['image']
+            #transit= False
+            #image  = False
+            #transit=self.pRTopts[ftype]['transit']
+            #image  =self.pRTopts[ftype]['image']
+            #pRTkwargs = dict(self.pRTopts[ftype])
+            #del pRTkwargs['transit']
+            #del pRTkwargs['image']
             
             if variables is None and self._configuredpostprocessor[ftype]:
                 pyburn.postprocess(inputfile,inputfile+self.extensions[ftype],logfile=log,
                                    radius=self.radius,
                                    gravity=self.gravity,gascon=self.gascon,**kwargs)
-                times = self.inspect("time",snapshot=(ftype=="snapshot"),highcadence=(ftype=="highcadence"))
-                if transit:
-                    atm,transitoutput = self.transit(-1,times,snapshot=(ftype=="snapshot"),
-                                                     highcadence=(ftype=="highcadence'"),logfile=log,
-                                                     **pRTkwargs)
-                if image:
-                    atm,imageoutput = self.image(-1,times,obsv_lats,obsv_lons,snapshot=(ftype=="snapshot"),
-                                                     highcadence=(ftype=="highcadence'"),logfile=log,
-                                                     **pRTkwargs)
+                #times = self.inspect("time",snapshot=(ftype=="snapshot"),highcadence=(ftype=="highcadence"))
+                #if transit:
+                    #atm,transitoutput = self.transit(-1,times,snapshot=(ftype=="snapshot"),
+                                                     #highcadence=(ftype=="highcadence'"),logfile=log,
+                                                     #**pRTkwargs)
+                #if image:
+                    #atm,imageoutput = self.image(-1,times,obsv_lats,obsv_lons,snapshot=(ftype=="snapshot"),
+                                                     #highcadence=(ftype=="highcadence'"),logfile=log,
+                                                     #**pRTkwargs)
             else:
                 if ftype!="regular":
                     if "times" not in kwargs:
@@ -1105,15 +1105,15 @@ class Model(object):
                 pyburn.postprocess(inputfile,inputfile+self.extension,logfile=log,namelist=namelist,
                                    variables=variables,radius=self.radius,
                                    gravity=self.gravity,gascon=self.gascon,**kwargs)
-                times = self.inspect("time",snapshot=(ftype=="snapshot"),highcadence=(ftype=="highcadence"))
-                if transit:
-                    atm,transitoutput = self.transit(-1,times,snapshot=(ftype=="snapshot"),
-                                                     highcadence=(ftype=="highcadence'"),logfile=log,
-                                                     **pRTkwargs)
-                if image:
-                    atm,imageoutput = self.image(-1,times,obsv_lats,obsv_lons,snapshot=(ftype=="snapshot"),
-                                                     highcadence=(ftype=="highcadence'"),logfile=log,
-                                                     **pRTkwargs)
+                #times = self.inspect("time",snapshot=(ftype=="snapshot"),highcadence=(ftype=="highcadence"))
+                #if transit:
+                    #atm,transitoutput = self.transit(-1,times,snapshot=(ftype=="snapshot"),
+                                                     #highcadence=(ftype=="highcadence'"),logfile=log,
+                                                     #**pRTkwargs)
+                #if image:
+                    #atm,imageoutput = self.image(-1,times,obsv_lats,obsv_lons,snapshot=(ftype=="snapshot"),
+                                                     #highcadence=(ftype=="highcadence'"),logfile=log,
+                                                     #**pRTkwargs)
                 
             return 1
         except Exception as e:
