@@ -1181,7 +1181,8 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                     photos[idx,idv+1,:,2] = orennayarcorrection(photos[idx,0,:,2],ilons,ilats,sollon,sollat,
                                                                 zenith,observers[idv,:],broadrefl,sigma)
         
-        photos[idx,...] = makecolors(photos[idx,...])
+        for idv in range(photos.shape[1]):
+            photos[idx,idv,...] = makecolors(photos[idx,idv,...])
         
         try:
             for idv in range(projectedareas.shape[1]):
