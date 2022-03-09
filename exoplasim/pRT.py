@@ -1223,7 +1223,10 @@ _postmetadata = {"images":["image_spectra_map","erg cm-2 s-1 Hz-1"],
                  "lon":["longitude","degrees"],
                  "wvl":["wavelength","microns"],
                  "time":["obsv_time_index","indices"],
-                 "albedomap":["input_albedo_map","reflectivity"]}
+                 "albedomap":["input_albedo_map","reflectivity"],
+                 "reflmap":["empirical_albedo_map","reflectivity"],
+                 "sigmamap":["diffusive_roughness","nondimensional"],
+                 "Intensities":["xyY_intensities","nondimensional"]}
 
 def _writecsvs(filename,variables,extension=None,logfile=None):
     '''Write CSV output files
