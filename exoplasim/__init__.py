@@ -1288,6 +1288,8 @@ class Model(object):
             An open netCDF4 data opject
         """
         #Note: if the work directory has been cleaned out, only the final year will be returned.
+        if year<0:
+            year+=self.currentyear
         if snapshot and not highcadence:
             name = "snapshots/MOST_SNAP.%05d%s"%(year,self.extension)
         elif highcadence and not snapshot:

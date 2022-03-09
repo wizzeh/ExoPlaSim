@@ -663,7 +663,7 @@ def orennayarcorrection_col(intensity,lon,lat,sollon,sollat,zenith,observer,albe
     zenith : array-like or float
         Solar zenith angle(s) in degrees
     observer : tuple
-        (lon,lat) tuple of sub-observer coordinates
+        (lat,lon) tuple of sub-observer coordinates
     albedo : array-like or float
         Scattering surface reflectivity (0--1)
     sigma : array-like or float
@@ -684,8 +684,8 @@ def orennayarcorrection_col(intensity,lon,lat,sollon,sollat,zenith,observer,albe
     if phi<0:
         phi+=2*np.pi
     
-    rlono = observer[0]*np.pi/180.
-    rlato = observer[1]*np.pi/180.
+    rlono = observer[1]*np.pi/180.
+    rlato = observer[0]*np.pi/180.
     otheta = np.arccos(np.sin(rlats)*np.sin(rlato)+np.cos(rlats)*np.cos(rlato)*np.cos(rlono-rlons))
     if otheta>np.pi/2.:
         return 0.0
@@ -728,7 +728,7 @@ def orennayarcorrection(intensity,lon,lat,sollon,sollat,zenith,observer,albedo,s
     zenith : array-like or float
         Solar zenith angle(s) in degrees
     observer : tuple
-        (lon,lat) tuple of sub-observer coordinates
+        (lat,lon) tuple of sub-observer coordinates
     albedo : array-like or float
         Scattering surface reflectivity (0--1)
     sigma : array-like or float
@@ -748,8 +748,8 @@ def orennayarcorrection(intensity,lon,lat,sollon,sollat,zenith,observer,albedo,s
                      -(np.sin(rlatz)*np.cos(rlats)-np.cos(rlatz)*np.sin(rlats)*np.cos(rlonz-rlons)))
     phi[phi<0]+=2*np.pi
     
-    rlono = observer[0]*np.pi/180.
-    rlato = observer[1]*np.pi/180.
+    rlono = observer[1]*np.pi/180.
+    rlato = observer[0]*np.pi/180.
     otheta = np.arccos(np.sin(rlats)*np.sin(rlato)+np.cos(rlats)*np.cos(rlato)*np.cos(rlono-rlons))
     ophi = np.arctan2(-np.cos(rlato)*np.sin(rlono-rlons),
                       -(np.sin(rlato)*np.cos(rlats)-np.cos(rlato)*np.sin(rlats)*np.cos(rlono-rlons)))
@@ -793,6 +793,7 @@ def makecolors(intensities):
     ogshape = intensities.shape
     flatshape = np.product(ogshape[:-1])
     flatintensities = np.reshape(intensities,(flatshape,3))
+    flatintensities[:,2] -= np.nanmin(flatintensities[:,2]) #So we have 0-F range
     colors = np.zeros((flatshape,3))
     for k in range(flatshape):
         colors[k,:] = cmatch.xyz2rgb(flatintensities[k,0],flatintensities[k,1],
@@ -1161,6 +1162,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                     with mp.Pool(num_cpus) as pool:
                         correctedI = pool.starmap(orennayarcorrection_col,args)
                     photos[idx,idv+1,:,2] = correctedI[:]
+                    photos[idx,idv+1,:,:2] = photos[idx,0,:,:2]
             
         else:
             for i in range(ncols):
@@ -1184,6 +1186,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                 for idv in range(observers.shape[0]):
                     photos[idx,idv+1,:,2] = orennayarcorrection(photos[idx,0,:,2],ilons,ilats,sollon,sollat,
                                                                 zenith,observers[idv,:],broadrefl,sigma)
+                    photos[idx,idv+1,:,:2] = photos[idx,0,:,:2]
         
         if debug:
             broadreflmap[idx,...] = broadrefl[:]
