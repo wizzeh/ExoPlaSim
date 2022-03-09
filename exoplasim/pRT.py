@@ -999,6 +999,9 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     
     if debug:
         albedomap = np.zeros((len(imagetimes),nlon*nlat,len(surfaces[0])))
+        sigmamap = np.zeros((len(imagetimes),nlon*nlat))
+        broadreflmap = np.zeros((len(imagetimes),nlon*nlat))
+        intensities = np.zeros_like(photos)
     #sfcalbedo = sfcalbedo.flatten()
     
     projectedareas = np.zeros((len(imagetimes),obsv_coords.shape[1],len(ilons)))
@@ -1110,6 +1113,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             
         if debug:
             albedomap[idx,:,:] = surfspecs[:,:]
+            sigmamap[idx,...] = sigma[:]
             
         viewangles = []
         for idv in range(obsv_coords.shape[1]):
@@ -1181,6 +1185,10 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                     photos[idx,idv+1,:,2] = orennayarcorrection(photos[idx,0,:,2],ilons,ilats,sollon,sollat,
                                                                 zenith,observers[idv,:],broadrefl,sigma)
         
+        if debug:
+            broadreflmap[idx,...] = broadrefl[:]
+            intensities[idx,...] = photos[idx,...]
+        
         for idv in range(photos.shape[1]):
             photos[idx,idv,...] = makecolors(photos[idx,idv,...])
         
@@ -1197,7 +1205,11 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     if debug:
         projectedareas = np.reshape(projectedareas,(len(imagetimes),obsv_coords.shape[1],nlat,nlon))
         albedomap = np.reshape(albedomap,(len(imagetimes),nlat,nlon,len(surfaces[0])))
-        return atmosphere,nc.c/atmosphere.freq*1e4,images,photos,lon,lat,meanimages,albedomap,projectedareas
+        sigmamap = np.reshape(sigmamap,(len(imagetimes),nlat,nlon))
+        broadreflmap = np.reshape(broadreflmap,(len(imagetimes),nlat,nlon))
+        intensities = np.reshape(intensities,photos.shape)
+        return atmosphere,nc.c/atmosphere.freq*1e4,images,photos,lon,lat,meanimages,\
+               albedomap,projectedareas,broadreflmap,sigmamap,intensities
     else:
         return atmosphere,nc.c/atmosphere.freq*1e4,images,photos,lon,lat,meanimages
 
