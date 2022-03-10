@@ -122,6 +122,23 @@ def _smooth(array,xcoords=None,xN=None,centerweight=0.95):
         newarr = (edgeweight*padded[:-2] + centerweight*padded[1:-1] + edgeweight*padded[2:])/dx
     return newarr
 
+def _fill(array,xcoords=None,minvalue=1.0e-6):
+    
+    filled = np.maximum(array,minvalue)
+    excess = filled-array #get the amount per cell that we had to add
+    if xcoords is not None:
+        dx = np.gradient(xcoords)
+    else:
+        dx = np.ones_like(array)
+    netexcess = np.nansum(excess*dx)
+    nondry = np.argwhere(excess==0)
+    weights = dx/np.sum(dx[nondry])
+    for layer in nondry:
+        filled[layer] -= netexcess*weights[layer]
+    print("Filled column mass: %f"%(np.nansum(filled*dx)))
+    print("Original column mass: %f"%(np.nansum(array*dx)))
+    return filled
+
 def _transitcolumn(atmosphere, pressures, psurf, temperature, humidity, clouds, 
                    gases_vmr, gascon, gravity, rplanet,
                    h2o_lines,cloudfunc,smooth,smoothweight,ozone,ozoneheight,ozonespread,num):
@@ -805,7 +822,7 @@ def makecolors(intensities):
     
 def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.80665, 
             Tstar=5778.0,Rstar=1.0,orbdistances=1.0,h2o_lines='HITEMP',
-            num_cpus=4,cloudfunc=None,smooth=True,smoothweight=0.50,
+            num_cpus=4,cloudfunc=None,smooth=True,smoothweight=0.50,filldry=False,
             stellarspec=None,ozone=False,stepsperyear=11520.,logfile=None,debug=False,
             orennayar=True,sigma=None):
     '''Compute reflection+emission spectra for snapshot output

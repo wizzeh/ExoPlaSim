@@ -1413,6 +1413,7 @@ def orthographic(lon,lat,imap,central_longitude=0,central_latitude=0,ny=200,nx=2
     coords3 = np.zeros((ny,nx,2))
     rad=0.5*(8*nx/18.0+8*ny/18.0)
     
+    #Add ghost cells
     zlat = np.zeros(np.array(lat.shape)+2)
     zlon = np.zeros(np.array(lon.shape)+2)
     dlat = np.diff(lat)
@@ -1428,16 +1429,22 @@ def orthographic(lon,lat,imap,central_longitude=0,central_latitude=0,ny=200,nx=2
     newshape[1] += 2
     zmap = np.zeros(tuple(newshape))
     zmap[1:-1,1:-1] = imap[:]
+    #At the poles, ghost cells are just duplicates
     zmap[0,...] = zmap[1,...]
     zmap[-1,...] = zmap[-2,...]
+    #At the left and right edges, ghost cells are cyclical
     zmap[:,0] = zmap[:,-2]
     zmap[:,-1] = zmap[:,1]
     
-    if l0>180.0:
-        l0 -= 360.0
-
-    if lon.max()>180.0:
-        zlon[zlon>180]-=360.0    
+    if lon.min()<0: #we're in a -180 to 180 domain
+        if l0>180.0:
+            l0 -= 360.0
+    
+        if lon.max()>180.0:
+            zlon[zlon>180]-=360.0    
+    else:
+        if l0<0:
+            l0 += 360.0
 
     p0 *= np.pi/180.0
     l0 *= np.pi/180.0
