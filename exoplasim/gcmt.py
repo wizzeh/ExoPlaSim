@@ -1465,9 +1465,9 @@ def orthographic(lon,lat,imap,central_longitude=0,central_latitude=0,ny=200,nx=2
                     lamb = l0 + np.arctan2(ix*np.sin(cc),(rho*np.cos(cc)*np.cos(p0)-jy*np.sin(cc)*np.sin(p0)))
                 phi *= 180.0/np.pi
                 lamb *= 180.0/np.pi
-                if lamb<-180:
+                if lamb<0 and lon.min()>=0:
                     lamb += 360
-                if lamb>180:
+                if lamb>180 and lon.min()<0:
                     lamb -= 360
                 jlat = np.argmin(abs(phi-zlat))
                 jlon = np.argmin(abs(lamb-zlon))
