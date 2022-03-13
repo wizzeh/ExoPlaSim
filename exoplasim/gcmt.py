@@ -1413,6 +1413,27 @@ def orthographic(lon,lat,imap,central_longitude=0,central_latitude=0,ny=200,nx=2
     coords3 = np.zeros((ny,nx,2))
     rad=0.5*(8*nx/18.0+8*ny/18.0)
     
+    if lon.min()<0: #we're in a -180 to 180 domain
+        if l0>180.0:
+            l0 -= 360.0
+    
+        if lon.max()>180.0:
+            zlon[zlon>180]-=360.0
+        
+        dl0 = l0 #lon-dl0 and l0-dl0 will rotate things so l0=0.
+        l0 -= dl0
+        
+        imap = np.roll(imap,-int(dl0/np.diff(lon)[0])) #l0 should now be centered in the data array
+        
+    else:
+        if l0<0:
+            l0 += 360.0
+        
+        dl0 = l0-180. #l0-dl0 = 180
+        l0 -= dl0
+        
+        imap = np.roll(imap,-int(dl0/np.diff(lon)[0])) #l0 should now be centered in the data array
+        
     #Add ghost cells
     zlat = np.zeros(np.array(lat.shape)+2)
     zlon = np.zeros(np.array(lon.shape)+2)
@@ -1436,15 +1457,6 @@ def orthographic(lon,lat,imap,central_longitude=0,central_latitude=0,ny=200,nx=2
     zmap[:,0] = zmap[:,-2]
     zmap[:,-1] = zmap[:,1]
     
-    if lon.min()<0: #we're in a -180 to 180 domain
-        if l0>180.0:
-            l0 -= 360.0
-    
-        if lon.max()>180.0:
-            zlon[zlon>180]-=360.0    
-    else:
-        if l0<0:
-            l0 += 360.0
 
     p0 *= np.pi/180.0
     l0 *= np.pi/180.0

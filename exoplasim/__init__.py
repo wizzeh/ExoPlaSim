@@ -3245,7 +3245,7 @@ References
         :py:func:`exportcfg <exoplasim.Model.exportcfg>` : Export model configuration to a portable text file.
 
 """
-        if not filename:
+        if filename is None:
             filename=self.workdir+"/%s.npy"%self.modelname
         else:
             if filename[0]!="/" and filename[0]!="~":

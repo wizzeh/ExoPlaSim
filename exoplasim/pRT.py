@@ -122,22 +122,82 @@ def _smooth(array,xcoords=None,xN=None,centerweight=0.95):
         newarr = (edgeweight*padded[:-2] + centerweight*padded[1:-1] + edgeweight*padded[2:])/dx
     return newarr
 
-def _fill(array,xcoords=None,minvalue=1.0e-6):
+def _airmass(pa,ps,ta,hus,gascon,gravity):
+    '''Compute the column density contribution of each layer in a column.
     
-    filled = np.maximum(array,minvalue)
-    excess = filled-array #get the amount per cell that we had to add
-    if xcoords is not None:
-        dx = np.gradient(xcoords)
-    else:
-        dx = np.ones_like(array)
-    netexcess = np.nansum(excess*dx)
-    nondry = np.argwhere(excess==0)
-    weights = dx/np.sum(dx[nondry])
-    for layer in nondry:
-        filled[layer] -= netexcess*weights[layer]
-    print("Filled column mass: %f"%(np.nansum(filled*dx)))
-    print("Original column mass: %f"%(np.nansum(array*dx)))
-    return filled
+    Parameters
+    ----------
+    pa : array-like
+        1D array of mid-layer pressures in hPa.
+    ps : float
+        Surface pressure in hPa.
+    ta : array-like
+        1D array of layer air temperatures in K.
+    hus : array-like
+        1D array of specific humidity in kg/kg.
+    gascon : float
+        Specific gas constant of dry air, in J/kg/K.
+    gravity : float
+        Surface gravity in SI units.
+        
+    Returns
+    -------
+    array-like
+        Mass per area contribution (kg/m^2) of each layer in the column.
+    '''
+    e = gascon/461.5 #Rd/Rv
+    hp = np.append(0.5*pa[0],np.append(0.5*(pa[:-1]+pa[1:]),ps))
+    vtemp =ta*(hus+e)/(e*(1+hus)) #virtual temperature
+    dz = gascon*vtemp/gravity*np.log(hp[1:]/hp[:-1])
+    airdensity = pa*100./(gascon*vtemp)
+    return airdensity*dz
+
+def _fill(hum,airmass,minvalue=1.0e-6):
+    '''Fill dry layers beneath wet layers to a minimum value, and then remove moisture from the wet values in a mass-conserving way.
+    
+    Wet layers will only be dried out to the minimum value. For most columns this is mass-conserving to within
+    a few percent or better.
+    
+    Parameters
+    ----------
+    hum : array-like
+        The humidity array to be adjusted. Must be a mixing ratio in kg/kg.
+    airmass : array-like
+        The mass per area contribution of each layer, such that the sum is equal to the total column density, in kg/m^2.
+    minvalue : float, optional
+        The fill value to use.
+        
+    Returns
+    -------
+    array-like
+        Adjusted humidity array.
+    '''
+    cloud=False
+    newhum = np.copy(hum)
+    for k in range(len(hum)):
+        if hum[k]>minvalue: #Everything below this needs to be filled.
+            cloud=True
+        if cloud:
+            newhum[k] = max(hum[k],minvalue)
+    if cloud:
+        excess = newhum-hum
+        excessmass = excess*airmass
+        if np.sum(excessmass)>np.sum(hum*airmass):
+            print("More water was dumped in than was in the cloud layers....")
+            print(np.sum(excessmass),np.sum(hum*airmass))
+        for k in range(len(hum)-1,-1,-1):
+            if excessmass[k]>0:
+                for j in range(k,-1,-1):
+                    if newhum[j]>minvalue:
+                        if (newhum[j]-minvalue)*airmass[j]>=excessmass[k]:
+                            newhum[j] = (newhum[j]*airmass[j] - excessmass[k])/airmass[j]
+                            excessmass[k] = 0.0
+                            break
+                        elif newhum[j]>minvalue:
+                            dhum = newhum[j]-minvalue
+                            excessmass[k] -= dhum*airmass[j]
+                            newhum[j] = minvalue
+    return newhum
 
 def _transitcolumn(atmosphere, pressures, psurf, temperature, humidity, clouds, 
                    gases_vmr, gascon, gravity, rplanet,
@@ -157,7 +217,7 @@ def _transitcolumn(atmosphere, pressures, psurf, temperature, humidity, clouds,
     humidity : numpy.ndarray
         Specific humidity in the column [kg/kg]
     clouds : numpy.ndarray
-        Cloud fraction in each cell
+        Cloud water mass fraction in each cell [kg/kg]
     gases_vmr : dict
         Dictionary of component gases and their volume mixing ratios
     gascon : float
@@ -495,8 +555,8 @@ def transit(output,transittimes,gases_vmr, gascon=287.0, gravity=9.80665,
 def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
                gases_vmr, gascon, h2o_lines,
                gravity, Tstar, Rstar,
-               starseparation,zenith,cloudfunc,smooth,smoothweight,ozone,
-               ozoneheight,ozonespread,num):
+               starseparation,zenith,cloudfunc,smooth,smoothweight,fill,
+               ozone,ozoneheight,ozonespread,num):
     '''Compute the reflectance/emission spectrum for a column of atmosphere.
     
     Parameters
@@ -512,7 +572,7 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
     humidity : numpy.ndarray
         Specific humidity in the column [kg/kg]
     clouds : numpy.ndarray
-        Cloud fraction in each cell
+        Cloud water mass fraction in each cell [kg/kg]
     gases_vmr : dict
         Dictionary of component gases and their volume mixing ratios
     gascon : float
@@ -542,6 +602,8 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
         The fraction of the water in a layer that should be retained during smoothing.
         A higher value means the smoothing is less severe. 0.95 is probably the upper
         limit for well-behaved spectra.
+    fill : float
+        If nonzero, the floor value for water humidity when moist layers are present above dry layers.
     ozone : float
         Ozone column amount [cm-STP]
     ozoneheight : float
@@ -574,6 +636,11 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
     if smooth:
         exthus = _smooth(exthus,xcoords=extp,xN=psurf,centerweight=smoothweight)
         extcl = _smooth(extcl,xcoords=extp,xN=psurf,centerweight=smoothweight)
+    
+    if fill>0.0:
+        airmass = _airmass(extp[:-1],psurf,extta[:-1],exthus[:-1],gascon,gravity)
+        extcl[:-1] = _fill(extcl[:-1],airmass,minvalue=fill)
+        exthus[:-1] = _fill(exthus[:-1],airmass,minvalue=fill)
     
     #Set up atmosphere
     atmosphere.setup_opa_structure(extp*1.0e-3)
@@ -822,7 +889,7 @@ def makecolors(intensities):
     
 def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.80665, 
             Tstar=5778.0,Rstar=1.0,orbdistances=1.0,h2o_lines='HITEMP',
-            num_cpus=4,cloudfunc=None,smooth=True,smoothweight=0.50,filldry=False,
+            num_cpus=4,cloudfunc=None,smooth=True,smoothweight=0.50,filldry=0.0,
             stellarspec=None,ozone=False,stepsperyear=11520.,logfile=None,debug=False,
             orennayar=True,sigma=None):
     '''Compute reflection+emission spectra for snapshot output
@@ -880,6 +947,10 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         The fraction of the water in a layer that should be retained during smoothing.
         A higher value means the smoothing is less severe. 0.95 is probably the upper
         limit for well-behaved spectra.
+    filldry : float, optional
+        If nonzero, the floor value for water humidity when moist layers are present above dry layers.
+        Columns will be adjusted in a mass-conserving manner with excess humidity accounted for in layers
+        *above* the filled layer, such that total optical depth from TOA is maintained at the dry layer.
     stellarspec : array-like (optional)
         A stellar spectrum measured at the wavelengths in surfacespecs.wvl. If None, a
         blackbody will be used.
@@ -1154,8 +1225,8 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             args = zip(repeat(atmosphere),pa,surfspecs,ta,hus,dql,repeat(gases_vmr),
                        repeat(gascon),repeat(h2o_lines),repeat(gravity),
                        repeat(Tstar),repeat(Rstar*nc.r_sun),repeat(starseparation*nc.AU),
-                       zenith,repeat(cloudfunc),repeat(smooth),repeat(smoothweight),o3,
-                       repeat(bo3),repeat(co3),np.arange(ncols))
+                       zenith,repeat(cloudfunc),repeat(smooth),repeat(smoothweight),repeat(filldry),
+                       o3,repeat(bo3),repeat(co3),np.arange(ncols))
             with mp.Pool(num_cpus) as pool:
                 spectra = pool.starmap(_imgcolumn,args)
             for i,column in enumerate(spectra):
@@ -1188,7 +1259,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                                     gases_vmr,gascon,h2o_lines,
                                     gravity,Tstar,Rstar*nc.r_sun,
                                     starseparation*nc.AU,zenith[i],
-                                    cloudfunc,smooth,smoothweight,o3[i],
+                                    cloudfunc,smooth,smoothweight,filldry,o3[i],
                                     bo3,co3,i)
                 images[idx,  i,:] = column[0][:]
                 photos[idx,0,i,:] = column[1][:]
