@@ -1423,7 +1423,7 @@ def orthographic(lon,lat,imap,central_longitude=0,central_latitude=0,ny=200,nx=2
         dl0 = l0 #lon-dl0 and l0-dl0 will rotate things so l0=0.
         l0 -= dl0
         
-        imap = np.roll(imap,-int(dl0/np.diff(lon)[0])) #l0 should now be centered in the data array
+        imap = np.roll(imap,-int(dl0/np.diff(lon)[0]),axis=1) #l0 should now be centered in the data array
         
     else:
         if l0<0:
@@ -1432,7 +1432,7 @@ def orthographic(lon,lat,imap,central_longitude=0,central_latitude=0,ny=200,nx=2
         dl0 = l0-180. #l0-dl0 = 180
         l0 -= dl0
         
-        imap = np.roll(imap,-int(dl0/np.diff(lon)[0])) #l0 should now be centered in the data array
+        imap = np.roll(imap,-int(dl0/np.diff(lon)[0]),axis=1) #l0 should now be centered in the data array
         
     #Add ghost cells
     zlat = np.zeros(np.array(lat.shape)+2)
