@@ -264,6 +264,7 @@ class Model(object):
                                     #"very bad idea to install things with sudo pip install.")
         
         self.runscript=None
+        self.starradius=1.0
         self.otherargs = {}
         self.pgases = {}
         self.modelname=modelname
@@ -1357,7 +1358,7 @@ class Model(object):
     
     def image(self,year,times,obsv_coords,snapshot=True,highcadence=False,h2o_linelist='Exomol',
               num_cpus=1,cloudfunc=None,smooth=True,smoothweight=0.95,filldry=1,0e-6,
-              orennayar=True,debug=False,logfile=None):
+              orennayar=True,debug=False,logfile=None,filename=None):
         
         if year<0:
             #nfiles = len(glob.glob(self.workdir+"/"+pattern+"*%s"%self.extension))
@@ -1366,12 +1367,15 @@ class Model(object):
     
         ncd = self.get(year,snapshot=snapshot,highcadence=highcadence)
         
-        if snapshot and not highcadence:
-            name = self.workdir+"/snapshots/MOST_SNAP_image.%05d%s"%(year,self.extension)
-        elif highcadence and not snapshot:
-            name = self.workdir+"/highcadence/MOST_HC_image.%05d%s"%(year,self.extension)
+        if filename is None:
+            if snapshot and not highcadence:
+                name = self.workdir+"/snapshots/MOST_SNAP_image.%05d%s"%(year,self.extension)
+            elif highcadence and not snapshot:
+                name = self.workdir+"/highcadence/MOST_HC_image.%05d%s"%(year,self.extension)
+            else:
+                name = self.workdir+"/MOST_image.%05d%s"%(year,self.extension)
         else:
-            name = self.workdir+"/MOST_image.%05d%s"%(year,self.extension)
+            name = filename
             
         gases_vmr = {}
         if len(self.pgases)==0:
@@ -1392,7 +1396,7 @@ class Model(object):
         if debug:
             atm,wvl,spectra,colors,lon,lat,avgspectra,albedomap,weights,reflmap,sigmamap,intensities = \
                                                               pRT.image(ncd,times,gases_vmr,
-                                                              obsv_coords,gascon=self.gascon
+                                                              obsv_coords,gascon=self.gascon,
                                                               gravity=self.gravity,Tstar=self.startemp,
                                                               Rstar=self.starradius,orbdistances=orbdistances,
                                                               num_cpus=ncpus,cloudfunc=cloudfunc,smooth=smooth,
@@ -1408,7 +1412,7 @@ class Model(object):
                               logfile=logfile)
         else:
             atm,wvl,spectra,colors,lon,lat,avgspectra = pRT.image(ncd,times,gases_vmr,
-                                                              obsv_coords,gascon=self.gascon
+                                                              obsv_coords,gascon=self.gascon,
                                                               gravity=self.gravity,Tstar=self.startemp,
                                                               Rstar=self.starradius,orbdistances=orbdistances,
                                                               num_cpus=ncpus,cloudfunc=cloudfunc,smooth=smooth,
