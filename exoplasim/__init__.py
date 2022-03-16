@@ -1321,11 +1321,11 @@ class Model(object):
         ncd = self.get(year,snapshot=snapshot,highcadence=highcadence)
         
         if snapshot and not highcadence:
-            name = "snapshots/MOST_SNAP_transit.%05d%s"%(year,self.extension)
+            name = self.workdir+"/snapshots/MOST_SNAP_transit.%05d%s"%(year,self.extension)
         elif highcadence and not snapshot:
-            name = "highcadence/MOST_HC_transit.%05d%s"%(year,self.extension)
+            name = self.workdir+"/highcadence/MOST_HC_transit.%05d%s"%(year,self.extension)
         else:
-            name = "MOST_transit.%05d%s"%(year,self.extension)
+            name = self.workdir+"/MOST_transit.%05d%s"%(year,self.extension)
             
         gases_vmr = {}
         if len(self.pgases)==0:
@@ -1355,8 +1355,9 @@ class Model(object):
                           logfile=logfile)
         return atm,output
     
-    def image(self,year,times,obsv_lats,obsv_lons,snapshot=True,highcadence=False,h2o_linelist='Exomol',
-              num_cpus=1,cloudfunc=None,smooth=False,smoothweight=0.95,logfile=None):
+    def image(self,year,times,obsv_coords,snapshot=True,highcadence=False,h2o_linelist='Exomol',
+              num_cpus=1,cloudfunc=None,smooth=True,smoothweight=0.95,filldry=1,0e-6,
+              orennayar=True,debug=False,logfile=None):
         
         if year<0:
             #nfiles = len(glob.glob(self.workdir+"/"+pattern+"*%s"%self.extension))
@@ -1366,11 +1367,11 @@ class Model(object):
         ncd = self.get(year,snapshot=snapshot,highcadence=highcadence)
         
         if snapshot and not highcadence:
-            name = "snapshots/MOST_SNAP_transit.%05d%s"%(year,self.extension)
+            name = self.workdir+"/snapshots/MOST_SNAP_image.%05d%s"%(year,self.extension)
         elif highcadence and not snapshot:
-            name = "highcadence/MOST_HC_transit.%05d%s"%(year,self.extension)
+            name = self.workdir+"/highcadence/MOST_HC_image.%05d%s"%(year,self.extension)
         else:
-            name = "MOST_transit.%05d%s"%(year,self.extension)
+            name = self.workdir+"/MOST_image.%05d%s"%(year,self.extension)
             
         gases_vmr = {}
         if len(self.pgases)==0:
@@ -1386,20 +1387,40 @@ class Model(object):
         if "O2" not in gases_vmr:
             gases_vmr["O2"] = 0.0
             
-        obsv_coords = zip(obsv_lats,obsv_lons) #each must have the same shape as times
-        
         orbdistances = self.semimajoraxis
         
-        atm,wvl,spectra,colors,lon,lat,avgspectra = pRT.image(ncd,times,gases_vmr,obsv_coords,gascon=self.gascon,
-                                                       gravity=self.gravity,Tstar=self.startemp,
-                                                       Rstar=self.starradius,orbdistances=orbdistances,
-                                                       h2o_lines='HITEMP',num_cpus=num_cpus,cloudfunc=cloudfunc,
-                                                       smooth=smooth,smoothweight=smoothweight,
-                                                       ozone=self.ozone,stepsperyear=self.stepsperyear,
-                                                       logfile=logfile)
+        if debug:
+            atm,wvl,spectra,colors,lon,lat,avgspectra,albedomap,weights,reflmap,sigmamap,intensities = \
+                                                              pRT.image(ncd,times,gases_vmr,
+                                                              obsv_coords,gascon=self.gascon
+                                                              gravity=self.gravity,Tstar=self.startemp,
+                                                              Rstar=self.starradius,orbdistances=orbdistances,
+                                                              num_cpus=ncpus,cloudfunc=cloudfunc,smooth=smooth,
+                                                              smoothweight=smoothweight,filldry=filldry,
+                                                              ozone=self.ozone,stepsperyear=self.stepsperyear,
+                                                              orennayar=orennayar,debug=True)
         
-        output = pRT.save(name,{"wvl":wvl,"time":times,"images":spectra,"colors":colors,
-                                "lat":lat,"lon":lon,"spectra":avgspectra},logfile=logfile)
+            output = pRT.save(name,{"wvl":wvl,"time":times,"star":atm.stellar_intensity*1e6,
+                                            "images":spectra,"colors":colors,
+                                            "lat":lat,"lon":lon,"spectra":avgspectra,
+                                            "albedomap":albedomap,"weights":weights,
+                                            "reflmap":reflmap,"sigmamap":sigmamap,"intensities":intensities},
+                              logfile=logfile)
+        else:
+            atm,wvl,spectra,colors,lon,lat,avgspectra = pRT.image(ncd,times,gases_vmr,
+                                                              obsv_coords,gascon=self.gascon
+                                                              gravity=self.gravity,Tstar=self.startemp,
+                                                              Rstar=self.starradius,orbdistances=orbdistances,
+                                                              num_cpus=ncpus,cloudfunc=cloudfunc,smooth=smooth,
+                                                              smoothweight=smoothweight,filldry=filldry,
+                                                              ozone=self.ozone,stepsperyear=self.stepsperyear,
+                                                              orennayar=orennayar)
+        
+            output = pRT.save(name,{"wvl":wvl,"time":times,"star":atm.stellar_intensity*1e6,
+                                            "images":spectra,"colors":colors,
+                                            "lat":lat,"lon":lon,"spectra":avgspectra},
+                              logfile=logfile)
+
         return atm,output
         
     

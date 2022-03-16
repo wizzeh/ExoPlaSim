@@ -695,11 +695,16 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
     
     wvl = nc.c/atmosphere.freq/1e-4 #wavelength in microns
     
-    intensities = makeintensities(wvl,atmosphere.flux*1e6*(atmosphere.freq)*1.0e-3/wvl) 
+    flux = atmosphere.flux*1e6
+    flux[(flux>1.0e10)|(flux<0)] = np.nan
+    
+    
+    intensities = makeintensities(wvl,flux*(atmosphere.freq)*1.0e-3/wvl) 
                                                            #1e-3 for cm-2 erg s-1 -> W m-2
     #We need to give the spectrum in W m-2 um-1
     
-    return atmosphere.flux*1e6,intensities,\
+    
+    return flux,intensities,\
            atmosphere.stellar_intensity*np.maximum(0.0,np.cos(zenith*np.pi/180.))*np.pi*1e6 #erg cm-2 s-1 Hz-1
 
 
@@ -1077,8 +1082,8 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     
     surfaces = [spec.modelspecs["groundblend"],
                 spec.modelspecs["oceanblend"],
-                spec.modelspecs["iceblend"]]
-    
+                spec.modelspecs["iceblend"],
+                spec.modelspecs["earthveg"]]
     
     sfcalbedo = surfaces[1][np.newaxis,:]*lsm[:,np.newaxis] + surfaces[0][np.newaxis,:]*(1-lsm)[:,np.newaxis]
     
@@ -1170,6 +1175,10 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         #icemap = 2.0*(ice>0.001) #1 mm probably not enough to make everything white
         ice = np.minimum(ice/0.02,1.0) #0-1 with a cap at 2 cm of snow
         snow = 1.0*(output.variables['snd'][t,...].flatten()>0.02)
+        forest = output.variables['vegf'][t,...].flatten()
+        ice[forest>0] *= 1 - 0.82*forest[forest>0] 
+        forest[ice>0] *= 0.82*forest[ice>0]
+        bare = 1-(ice+forest)
         #sfctype = np.maximum(sea,icemap).astype(int)
            # Sea with no ice:  1
            # Sea with ice:     2
@@ -1181,7 +1190,8 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             
         surfspecs = (sfcalbedo*(1-output.variables['sic'][t,...].flatten())[:,np.newaxis]+
                      surfaces[2][np.newaxis,:]*(output.variables['sic'][t,...].flatten())[:,np.newaxis])
-        surfspecs = (surfspecs*(1-ice)[:,np.newaxis] + surfaces[2][np.newaxis,:]*ice[:,np.newaxis])
+        surfspecs = (surfspecs*bare[:,np.newaxis] + surfaces[2][np.newaxis,:]*ice[:,np.newaxis]+
+                     surfaces[3][np.newaxis,:]*forest[:,np.newaxis])
         
         if orennayar and sigma is None:
             surfsigmas = (sfcsigmas*(1-output.variables['sic'][t,...].flatten())+
@@ -1241,7 +1251,10 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             influx = inrad*visfreq[np.newaxis,:]
             print(influx.shape,reflectivity.shape)
             convolved = influx*reflectivity
-            broadrefl = np.trapz(convolved,x=viswvl,axis=1)/np.trapz(influx,x=viswvl,axis=1)
+            broadrefl = np.zeros(convolved.shape[:-1])
+            for k in range(broadrefl.shape[0]):
+                mask = ~np.isnan(convolved[k])
+                broadrefl[k] = np.trapz(convolved[k][mask],x=viswvl[mask],axis=1)/np.trapz(influx[mask],x=viswvl[mask],axis=1)
             if orennayar and sigma.max()>0.0:                                            
                 for idv in range(observers.shape[0]):
                     args = zip(photos[idx,0,:,2].flatten(),ilons,ilats,
@@ -1269,7 +1282,10 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             reflectivity = outrad/inrad
             influx = inrad*visfreq[np.newaxis,:]
             convolved = influx*reflectivity
-            broadrefl = np.trapz(convolved,x=viswvl,axis=1)/np.trapz(influx,x=viswvl,axis=1)
+            broadrefl = np.zeros(convolved.shape[:-1])
+            for k in range(broadrefl.shape[0]):
+                mask = ~np.isnan(convolved[k])
+                broadrefl[k] = np.trapz(convolved[k][mask],x=viswvl[mask],axis=1)/np.trapz(influx[mask],x=viswvl[mask],axis=1)
             if orennayar and sigma.max()>0.0:
                 for idv in range(observers.shape[0]):
                     photos[idx,idv+1,:,2] = orennayarcorrection(photos[idx,0,:,2],ilons,ilats,sollon,sollat,
@@ -1287,7 +1303,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             for idv in range(projectedareas.shape[1]):
                 view = projectedareas[idx,idv,:]
                 print("Processing view %d"%idv)
-                meanimages[idx,idv,:] = np.average(images[idx,...],axis=0,weights=view)
+                meanimages[idx,idv,:] = np.ma.average(np.ma.MaskedArray(images[idx,...], mask=np.isnan(images[idx,...])),axis=0,weights=view)
         except BaseException as err:
             print("Error computing disk-averaged means")
             print(err)

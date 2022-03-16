@@ -81,9 +81,9 @@ def makexyz(wvl,spec,interpolant=None):
         yn = interpolant[1]
         zn = interpolant[2]
     
-    XI = np.trapz(xn*specn,x=wn)
-    YI = np.trapz(yn*specn,x=wn)
-    ZI = np.trapz(zn*specn,x=wn)
+    XI = np.trapz(xn[~np.isnan(specn)]*specn[~np.isnan(specn)],x=wn[~np.isnan(specn)])
+    YI = np.trapz(yn[~np.isnan(specn)]*specn[~np.isnan(specn)],x=wn[~np.isnan(specn)])
+    ZI = np.trapz(zn[~np.isnan(specn)]*specn[~np.isnan(specn)],x=wn[~np.isnan(specn)])
     xyzmin = np.amin((XI,YI,ZI))
     if xyzmin<0:
         XI -=xyzmin
