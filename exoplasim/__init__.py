@@ -1334,7 +1334,7 @@ class Model(object):
             gases_vmr["N2"] = 1.0-gases_vmr['CO2']
         else:
             for gas in self.pgases:
-                gases_vmr[gas[1:]] = gas/self.pressure
+                gases_vmr[gas[1:]] = self.pgases[gas]/self.pressure
         if "H2" not in gases_vmr:
             gases_vmr["H2"] = 0.0
         if "He" not in gases_vmr:
@@ -1383,7 +1383,7 @@ class Model(object):
             gases_vmr["N2"] = 1.0-gases_vmr['CO2']
         else:
             for gas in self.pgases:
-                gases_vmr[gas[1:]] = gas/self.pressure
+                gases_vmr[gas[1:]] = self.pgases[gas]/self.pressure
         if "H2" not in gases_vmr:
             gases_vmr["H2"] = 0.0
         if "He" not in gases_vmr:
