@@ -1357,7 +1357,7 @@ class Model(object):
         return atm,output
     
     def image(self,year,times,obsv_coords,snapshot=True,highcadence=False,h2o_linelist='Exomol',
-              num_cpus=1,cloudfunc=None,smooth=True,smoothweight=0.95,filldry=1,0e-6,
+              num_cpus=1,cloudfunc=None,smooth=True,smoothweight=0.95,filldry=1.0e-6,
               orennayar=True,debug=False,logfile=None,filename=None):
         
         if year<0:
