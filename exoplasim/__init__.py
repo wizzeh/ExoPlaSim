@@ -1400,7 +1400,7 @@ class Model(object):
                                                               obsv_coords,gascon=self.gascon,
                                                               gravity=self.gravity,Tstar=self.startemp,
                                                               Rstar=self.starradius,orbdistances=orbdistances,
-                                                              num_cpus=ncpus,cloudfunc=cloudfunc,smooth=smooth,
+                                                              num_cpus=self.ncpus,cloudfunc=cloudfunc,smooth=smooth,
                                                               smoothweight=smoothweight,filldry=filldry,
                                                               ozone=self.ozone,stepsperyear=self.stepsperyear,
                                                               orennayar=orennayar,debug=True)
@@ -1416,7 +1416,7 @@ class Model(object):
                                                               obsv_coords,gascon=self.gascon,
                                                               gravity=self.gravity,Tstar=self.startemp,
                                                               Rstar=self.starradius,orbdistances=orbdistances,
-                                                              num_cpus=ncpus,cloudfunc=cloudfunc,smooth=smooth,
+                                                              num_cpus=self.ncpus,cloudfunc=cloudfunc,smooth=smooth,
                                                               smoothweight=smoothweight,filldry=filldry,
                                                               ozone=self.ozone,stepsperyear=self.stepsperyear,
                                                               orennayar=orennayar)
