@@ -1193,12 +1193,12 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         surfspecs = (surfspecs*bare[:,np.newaxis] + surfaces[2][np.newaxis,:]*ice[:,np.newaxis]+
                      surfaces[3][np.newaxis,:]*forest[:,np.newaxis])
         
+        clt = output.variables['clt'][t,...].flatten()
         if orennayar and sigma is None:
             surfsigmas = (sfcsigmas*(1-output.variables['sic'][t,...].flatten())+
                         sigmas[2]*(output.variables['sic'][t,...].flatten()))
             surfsigmas = (surfsigmas*(1-snow) + sigmas[2]*snow)
         
-            clt = output.variables['clt'][t,...].flatten()
         
             sigma = (surfsigmas*(1-clt) + clt*sigmas[3])
         elif orennayar and sigma is not None:
@@ -1254,7 +1254,10 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             broadrefl = np.zeros(convolved.shape[:-1])
             for k in range(broadrefl.shape[0]):
                 #mask = ~np.isnan(convolved[k])
-                broadrefl[k] = np.trapz(convolved[k],x=viswvl,axis=1)/np.trapz(influx,x=viswvl,axis=1)
+                try:
+                    broadrefl[k] = np.trapz(convolved[k],x=viswvl,axis=1)/np.trapz(influx,x=viswvl,axis=1)
+                except:
+                    broadrefl[k] = albedo[k]*(1-clt[k]) + clt[k]*0.9
             if orennayar and sigma.max()>0.0:                                            
                 for idv in range(observers.shape[0]):
                     args = zip(photos[idx,0,:,2].flatten(),ilons,ilats,
@@ -1285,7 +1288,10 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             broadrefl = np.zeros(convolved.shape[:-1])
             for k in range(broadrefl.shape[0]):
                 #mask = ~np.isnan(convolved[k])
-                broadrefl[k] = np.trapz(convolved[k],x=viswvl,axis=1)/np.trapz(influx,x=viswvl,axis=1)
+                try:
+                    broadrefl[k] = np.trapz(convolved[k],x=viswvl,axis=1)/np.trapz(influx,x=viswvl,axis=1)
+                except:
+                    broadrefl[k] = albedo[k]*(1-clt[k]) + clt[k]*0.9
             if orennayar and sigma.max()>0.0:
                 for idv in range(observers.shape[0]):
                     photos[idx,idv+1,:,2] = orennayarcorrection(photos[idx,0,:,2],ilons,ilats,sollon,sollat,
