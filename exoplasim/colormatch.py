@@ -6,7 +6,7 @@ widegamut = np.array([[ 1.4628067, -0.1840623, -0.2743606],
                       [-0.5217933,  1.4472381,  0.0677227],
                       [ 0.0349342, -0.0968930,  1.2884099]])
 
-
+cie_wvl,cie_xx,cie_yy,cie_zz = np.loadtxt("/".join(__file__.split("/")[:-1])+"/cmf.csv",unpack=True,delimiter=',')
 
 
 def _loadcie():
@@ -26,7 +26,11 @@ def interpolant(wvl):
     (array-like,array-like,array-like)
         (fx(lambda),fy(lambda),fz(lambda))
     '''
-    w0,xx,yy,zz = _loadcie()
+    #w0,xx,yy,zz = _loadcie()
+    w0 = cie_wvl
+    xx = cie_xx
+    yy = cie_yy
+    zz = cie_zz
     fx = interpolate.interp1d(w0,xx)
     fy = interpolate.interp1d(w0,yy)
     fz = interpolate.interp1d(w0,zz)
@@ -63,7 +67,11 @@ def makexyz(wvl,spec,interpolant=None):
     '''
     if np.amin(wvl)<1.0e-3: #probably meters not nanometers
         wvl*=1.0e9
-    w0,xx,yy,zz = _loadcie()
+    #w0,xx,yy,zz = _loadcie()
+    w0 = cie_wvl
+    xx = cie_xx
+    yy = cie_yy
+    zz = cie_zz
     imin = np.where(wvl>np.amin(w0))[0][0]
     imax = np.where(wvl<np.amax(w0))[0][-1]
     wn = wvl[imin:imax+1]
