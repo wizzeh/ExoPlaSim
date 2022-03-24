@@ -82,6 +82,27 @@ class _Constants:
         
 consts = _Constants()
 
+def blackbody(wavelengths,temperature):
+    '''Compute the Planck function for a set of wavelengths and a given effective temperature.
+    
+    Parameters
+    ----------
+    wavelengths : array-like
+        Wavelengths in microns
+    temperature : float
+        Effective temperature in Kelvins
+        
+    Returns
+    -------
+    array-like
+        Spectral radiance F_lambda(lambda,T) for the provided wavelengths assuming a perfect blackbody.
+    '''
+    y = wavelengths*1.0e-6
+    T = temperature
+    bb = 2*consts.h*consts.c**2/y**5 * 1/(np.exp(consts.h*consts.c/(y*consts.kb*T))-1) #W sr-1 m-3
+    bb *= 1e6 #W sr-1 m-2 um-1
+    return bb
+
 def _loadnetcdf(filename):
     import netCDF4 as nc
     ncd = nc.Dataset(filename,"r")
