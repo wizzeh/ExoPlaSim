@@ -3,6 +3,85 @@ import exoplasim.filesupport
 from exoplasim.filesupport import SUPPORTED
 import os, glob
 
+class _Constants:
+    def __init__(self):
+        '''Container for constants in SI units
+        
+        Constants contained:
+        --------------------
+        h : Planck's constant
+        c : Speed of light
+        kb : Boltzmann constant
+        sb : Stefan-Boltzmann constant
+        R : ideal gas constant
+        pc : 1 parsec
+        ly : 1 light-year
+        AU : 1 astronomical unit 
+        Rsun : solar radius
+        Rearth : Earth radius (by default the equatorial radius)
+        Rjup : Jupiter radius (by default the equatorial radius)
+        Rearth_* : Earth radii of various types. Polar (_po), equatorial (_eq),
+            arithmetic mean (_av), authalic (_auth), volumetric (_vol),
+            and rectifying (_rec) radii are all available.
+        Rjup_* : Jupiter radii of various types. Polar (_po), equatorial (_eq),
+            and arithmetic mean (_av) are available.
+        Msun : Solar mass
+        Mearth: Earth mass
+        Mjup: Jupiter mass
+        
+        '''
+        self.h           = 6.62607004e-34          #Planck's constant
+        self.c           = 2.99792458e8            #Speed of light
+        self.kb          = 1.38064852e-23          #Boltzmann constant
+        self.sb          = 5.670374419e-8          #Stefan-Boltzmann constant
+        self.Rearth_eq   = 6.3781e6                #Earth equatorial radius
+        self.Rsun        = 6.957e8                 #Radius of the sun (IAU)
+        self.Rearth_po   = 6.3568e6                #Earth polar radius
+        self.Rearth_av   = 6.3710088e6             #Earth arithmetic mean radius
+        self.Rearth_auth = 6.3710072e6             #Earth authalic radius (same area as reference ellipsoid)
+        self.Rearth_vol  = 6.3710008e6             #Earth volumetric radius (same volume as reference ellipsoid)
+        self.Rearth_rec  = 6.367445e6              #Earth rectifying radius (same polar cross section perimeter)
+        self.Rjup_eq     = 7.1492e7                #Jupiter equatorial radius
+        self.Rjup_po     = 6.6854e7                #Jupiter polar radius
+        self.Rjup_av     = 6.9911e7                #Jupiter arithmetic mean radius
+        self.Rearth      = self.Rearth_eq      
+        self.Rjup        = self.Rjup_eq          
+        self.Msun        = 1.98847e30              #Solar mass in kg
+        self.Mearth      = 5.9722e24               #Earth mass in kg 
+        self.Mjup        = 1.8982e27               #Jupiter mass in kg
+        self.AU          = 1.49597870691e11        #1 AU in meters
+        self.ly          = 9.460730472580800e15    #1 light-year in meters
+        self.pc          = 6.48000e5/np.pi*self.AU #1 parsec in meters
+        self.R           = 8.31446261815324        #ideal gas constant
+        
+    def __str__(self):
+        docstring = ("h (Planck's constant)                : 6.62607004e-34      \n"+  
+                     "c (speed of light)                   : 2.99792458e8        \n"+  
+                     "kb (Boltzmann constant)              : 1.38064852e-23      \n"+  
+                     "sb (Stefan-Boltzmann constant)       : 5.670374419e-8      \n"+  
+                     "Rearth_eq (Earth equatorial radius)  : 6.3781e6            \n"+  
+                     "Rsun (Solar radius)                  : 6.957e8             \n"+  
+                     "Rearth_po (Earth polar radius)       : 6.3568e6            \n"+  
+                     "Rearth_av (Earth average radius)     : 6.3710088e6         \n"+  
+                     "Rearth_auth (Earth authalic radius)  : 6.3710072e6         \n"+  
+                     "Rearth_vol (Earth volumetric radius) : 6.3710008e6         \n"+  
+                     "Rearth_rec (Earth rectifying radius) : 6.367445e6          \n"+  
+                     "Rjup_eq (Jupiter equatorial radius)  : 7.1492e7            \n"+  
+                     "Rjup_po (Jupiter polar radius)       : 6.6854e7            \n"+  
+                     "Rjup_av (Jupiter average radius)     : 6.9911e7            \n"+  
+                     "Rearth (Earth IAU radius)            : Rearth_eq           \n"+
+                     "Rjup (Jupiter IAU radius)            : Rjup_eq             \n"+
+                     "Msun (Solar mass)                    : 1.98847e30          \n"+  
+                     "Mearth (Earth mass)                  : 5.9722e24           \n"+  
+                     "Mjup (Jupiter mass)                  : 1.8982e27           \n"+  
+                     "AU (Astronomical Unit)               : 1.49597870691e11    \n"+  
+                     "ly (light year)                      : 9.460730472580800e15\n"+  
+                     "pc (parsec)                          : 6.48000e5/pi*AU     \n"+
+                     "R (ideal gas constant)               : 8.31446261815324")
+        return docstring
+        
+consts = _Constants()
+
 def _loadnetcdf(filename):
     import netCDF4 as nc
     ncd = nc.Dataset(filename,"r")
