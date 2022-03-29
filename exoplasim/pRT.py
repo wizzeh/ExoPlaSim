@@ -1313,6 +1313,11 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         except BaseException as err:
             print("Error computing disk-averaged means")
             print(err)
+    column = _imgcolumn(atmosphere,pa[0,:],surfspecs[0,:],ta[0,:],hus[0,:],dql[0,:],
+                        gases_vmr,gascon,h2o_lines,gravity,Tstar,Rstar*nc.r_sun,
+                        starseparation*nc.AU,0.0,cloudfunc,smooth,smoothweight,filldry,o3[0])
+    if atmosphere.stellar_intensity is None:
+        atmosphere.stellar_intensity = column[2]*1.0e-6/np.pi
     images = np.reshape(images,(len(imagetimes),nlat,nlon,len(atmosphere.freq)))
     photos = np.reshape(photos,(len(imagetimes),obsv_coords.shape[1]+1,nlat,nlon,3))
     if debug:
