@@ -78,60 +78,48 @@ def writePGM(name,heightfield):
     with open(name+".pgm","w") as fw:
         fw.write(filetext)
 
-def main():
-    """Command-line tool to randomly generate continents up to specified land fraction. Topography optional.
-    
-    Do not invoke as an imported function; must run directly.
+def generate(name="Alderaan",continents=7,landfraction=0.29,maxz=10.0,nlats=32,hemispherelongitude=np.nan,
+             topo=False,orthographic=False):
+    '''Randomly generate continents up to specified land fraction. Topography optional.
 
-**Options**
-        -z,--topo   
-            Generate topographical geopotential map
-        -c,--continents   
-            Number of continental cratons
-        -f,--landfraction   
-            Land fraction
-        -n,--name   
-            Assign a name for the planet
-        -m,--maxz   
-            Maximum elevation in km assuming Earth gravity
-        --nlats   
-            Number of latitudes (evenly-spaced)--will also set longitudes (twice as many). If unset, PlaSim latitudes and longitudes will be used (T21 resolution)"
-        -l,--hemispherelongitude   
-            Confine land to a hemisphere centered on a given longitude
-        -o,--orthographic   
-            Plot orthographic projections centered on hemispherelongitude 
+    Generates name_surf_0172.sra, the land mask file, and (if requested) 
+    name_surf_0129.sra, the topography file.
 
-    Yields
+    Parameters
+    ----------
+    name : str, optional
+        Name for the planet; will be used in filenames.
+    continents : int, optional
+        Number of initial continental cratons. Note that due to craton collisions,
+        this may not be the number of final landmasses.
+    landfraction : float, optional
+        Target land fraction (may deviate slightly).
+    maxz : float, optional
+        Maximum surface elevation under Earth gravity (non-Earth gravity will change the final elevation)
+    nlats : int, optional
+        Number of latitudes. If set to False, T21 Gaussian latitudes will be used. Longitudes are 2*nlats.
+    hemispherelongitude : float, optional
+        If finite, confine land to a hemisphere centered on this longitude.
+    topo : bool, optional
+        If True, compute topography.
+    orthorgraphic : bool, optional
+        If True, plot orthographic projections centered on hemispherelongitude.
+
+    Returns
     ------
-    name_surf_0172.sra
-        Land mask SRA file
-    name_surf_0129.sra (optional)
-        Topography geopotential SRA file (if requested)
+    np.ndarray(2*nlat), np.ndarray(nlat), np.ndarray(nlat,2*nlat)[, np.ndarray(nlat,2*nlat)]
+        Longitude, Latitude, land-sea mask, and if requested, surface geopotential (topography)
+    '''
 
-    """
-    parser = ag.ArgumentParser(description="Randomly generate continents up to a specified land-fraction. Topography optional.")
-    parser.add_argument("-z","--topo",action="store_true",help="Generate topographical geopotential map",)
-    parser.add_argument("-c","--continents",type=int,default=7,help="Number of continental cratons")
-    parser.add_argument("-f","--landfraction",type=float,default=0.29,help="Land fraction")
-    parser.add_argument("-n","--name",default="Alderaan",help="Assign a name for the planet")
-    parser.add_argument("-m","--maxz",default=10.0,type=float,help="Maximum elevation in km assuming Earth gravity")
-    if os.path.exists("T21.nc"):
-        parser.add_argument("--nlats",type=int,help="Number of latitudes (evenly-spaced)--will also set longitudes (twice as many). If unset, PlaSim latitudes and longitudes will be used (T21 resolution)")
-    else:
-        parser.add_argument("--nlats",default=32,type=int,help="Number of latitudes (evenly-spaced)--will also set longitudes (twice as many).")
-    parser.add_argument("-l","--hemispherelongitude",type=float,default=np.nan,help="Confine land to a hemisphere centered on a given longitude")
-    parser.add_argument("-o","--orthographic",action="store_true",help="Plot orthographic projections centered on hemispherelongitude")
-    args = parser.parse_args()
-    
-    if not args.nlats:
+    if not nlats:
         import netCDF4 as nc
         dims = nc.Dataset("T21.nc","r")
     
         lts = dims.variables['lat'][:]
         lns = dims.variables['lon'][:]
     else:
-        lts = np.linspace(90,-90,num=args.nlats+2)[1:-1]
-        lns = np.linspace(0,360,num=args.nlats*2+1)[:-1]
+        lts = np.linspace(90,-90,num=nlats+2)[1:-1]
+        lns = np.linspace(0,360,num=nlats*2+1)[:-1]
     lons, lats = np.meshgrid(lns,lts)
     
     minlon=0.0
@@ -139,10 +127,10 @@ def main():
     lonrange=360.0
     l0 = 0.5*(minlon+maxlon)
     wraplon=False
-    if np.isfinite(args.hemispherelongitude):
-        l0 = args.hemispherelongitude
-        minlon=args.hemispherelongitude-90.0
-        maxlon=args.hemispherelongitude+90.0
+    if np.isfinite(hemispherelongitude):
+        l0 = hemispherelongitude
+        minlon=hemispherelongitude-90.0
+        maxlon=hemispherelongitude+90.0
         lonrange=180.0
         if minlon<0:
             minlon+=360.0
@@ -196,11 +184,7 @@ def main():
     hlatsw=_wrap2d(hlats,hlats[:,0])
     hlonsw=_wrap2d(hlons,360.0)
     
-    ncontinents = args.continents #There's no guarantee you actually get this many if it's >1, since continents can merge
-    
-    landfraction = args.landfraction
-    
-    name=args.name
+    ncontinents = continents #There's no guarantee you actually get this many if it's >1, since continents can merge
     
     grid = np.zeros((NLAT,NLON))
     wgrid = np.zeros((NLAT+2,NLON+2))
@@ -287,9 +271,9 @@ def main():
         cratons[:,-1] = cratons[:,1]
     
     
-    print(args.orthographic)
+    print(orthographic)
     
-    if not args.orthographic:
+    if not orthographic:
         tm = plt.pcolormesh(hlons,hlats,grid,cmap='gist_earth',vmin=-0.3,vmax=2.5)
         plt.xlabel('Degrees Longitude')
         plt.ylabel('Degrees Latitude')
@@ -321,9 +305,8 @@ def main():
     
     writeSRA(name,172,grid,NLAT,NLON)
     
-    
     plt.close('all')
-    if not args.orthographic:
+    if not orthographic:
         t = plt.pcolormesh(hlons,hlats,cratons[1:-1,1:-1],cmap='gist_ncar',vmin=-0.3,vmax=ncontinents+2)
         plt.xlabel('Degrees Longitude')
         plt.ylabel('Degrees Latitude')
@@ -353,7 +336,9 @@ def main():
         plt.savefig(name+"_cratons.pdf",bbox_inches='tight')
         plt.close('all')  
     
-    if args.topo:
+    dtopo = np.zeros_like(grid)
+    
+    if topo:
         seeds = np.copy(seams)
         gcratonsx,gcratonsy = np.gradient(cratons[1:-1,1:-1],lts,lns)
         seams[:] = np.sqrt(gcratonsx**2+gcratonsy**2)
@@ -361,13 +346,13 @@ def main():
         
         g0 = 9.80665
         if np.nanmax(seams)>0.0:
-            geopotential = g0*(seams/np.nanmax(seams))*args.maxz*1000.0
+            geopotential = g0*(seams/np.nanmax(seams))*maxz*1000.0
         else:
-            geopotential = g0*(grid*0.1+seeds*3.0)*args.maxz*1000.0
+            geopotential = g0*(grid*0.1+seeds*3.0)*maxz*1000.0
             seams[:] = seeds[:]
         geopotential[grid==0.0] = np.nan
         
-        if not args.orthographic:
+        if not orthographic:
             tm = plt.pcolormesh(hlons,hlats,grid+seams*3.0,cmap='plasma')
             plt.title("Craton Seams")
             plt.xlabel("Degrees Longitude")
@@ -478,7 +463,7 @@ def main():
         
         writeSRA(name,129,dtopo,NLAT,NLON)
         
-        if not args.orthographic:
+        if not orthographic:
             plt.close('all')
             t=plt.pcolormesh(hlons,hlats,dtopo,cmap='gist_earth',norm=colors.LogNorm(vmin=10.0))
             plt.xlabel('Degrees Longitude')
@@ -513,6 +498,63 @@ def main():
         hf[grid>0.5] += 1000.0
         
         writePGM(name,hf)
+        
+        if topo:
+            return lns,lts,grid,dtopo
+        else:
+            return lnt,lts,grid
+        
+        
+def main():
+    """Command-line tool to randomly generate continents up to specified land fraction. Topography optional.
+    
+    Do not invoke as an imported function; must run directly.
+
+**Options**
+        -z,--topo   
+            Generate topographical geopotential map
+        -c,--continents   
+            Number of continental cratons
+        -f,--landfraction   
+            Land fraction
+        -n,--name   
+            Assign a name for the planet
+        -m,--maxz   
+            Maximum elevation in km assuming Earth gravity
+        --nlats   
+            Number of latitudes (evenly-spaced)--will also set longitudes (twice as many). If unset, PlaSim latitudes and longitudes will be used (T21 resolution)"
+        -l,--hemispherelongitude   
+            Confine land to a hemisphere centered on a given longitude
+        -o,--orthographic   
+            Plot orthographic projections centered on hemispherelongitude 
+
+    Yields
+    ------
+    name_surf_0172.sra
+        Land mask SRA file
+    name_surf_0129.sra (optional)
+        Topography geopotential SRA file (if requested)
+
+    """
+    parser = ag.ArgumentParser(description="Randomly generate continents up to a specified land-fraction. Topography optional.")
+    parser.add_argument("-z","--topo",action="store_true",help="Generate topographical geopotential map",)
+    parser.add_argument("-c","--continents",type=int,default=7,help="Number of continental cratons")
+    parser.add_argument("-f","--landfraction",type=float,default=0.29,help="Land fraction")
+    parser.add_argument("-n","--name",default="Alderaan",help="Assign a name for the planet")
+    parser.add_argument("-m","--maxz",default=10.0,type=float,help="Maximum elevation in km assuming Earth gravity")
+    if os.path.exists("T21.nc"):
+        parser.add_argument("--nlats",type=int,help="Number of latitudes (evenly-spaced)--will also set longitudes (twice as many). If unset, PlaSim latitudes and longitudes will be used (T21 resolution)")
+    else:
+        parser.add_argument("--nlats",default=32,type=int,help="Number of latitudes (evenly-spaced)--will also set longitudes (twice as many).")
+    parser.add_argument("-l","--hemispherelongitude",type=float,default=np.nan,help="Confine land to a hemisphere centered on a given longitude")
+    parser.add_argument("-o","--orthographic",action="store_true",help="Plot orthographic projections centered on hemispherelongitude")
+    args = parser.parse_args()
+    
+    output = generate(name=args.name,continents=args.continents,
+                                landfraction=args.landfraction,maxz=args.maxz,
+                                nlats=args.nlats,hemispherelongitude=args.hemispherelongitude,
+                                topo=args.topo,orthographic=args.orthographic)
+    
         
 if __name__=="__main__" and (Path(sys.argv[0]).name!="sphinx-build" and 
                              Path(sys.argv[0]).name!="build.py"):
