@@ -1357,15 +1357,20 @@ class Model(object):
         return atm,output
     
     def image(self,year,times,obsv_coords,snapshot=True,highcadence=False,h2o_linelist='Exomol',
-              num_cpus=1,cloudfunc=None,smooth=True,smoothweight=0.95,filldry=1.0e-6,
-              orennayar=True,debug=False,logfile=None,filename=None):
+              num_cpus=None,cloudfunc=None,smooth=True,smoothweight=0.95,filldry=1.0e-6,
+              orennayar=True,debug=False,logfile=None,filename=None,inputfile=None):
         
         if year<0:
             #nfiles = len(glob.glob(self.workdir+"/"+pattern+"*%s"%self.extension))
             #year = nfiles+year
             year += self.currentyear #year=-1 should give the most recent year
-    
-        ncd = self.get(year,snapshot=snapshot,highcadence=highcadence)
+        if inputfile is None:
+            ncd = self.get(year,snapshot=snapshot,highcadence=highcadence)
+        else:
+            ncd = gcmt.load(inputfile)
+        
+        if num_cpus is None:
+            num_cpus = self.ncpus
         
         if filename is None:
             if snapshot and not highcadence:
@@ -1400,7 +1405,7 @@ class Model(object):
                                                               obsv_coords,gascon=self.gascon,
                                                               gravity=self.gravity,Tstar=self.startemp,
                                                               Rstar=self.starradius,orbdistances=orbdistances,
-                                                              num_cpus=self.ncpus,cloudfunc=cloudfunc,smooth=smooth,
+                                                              num_cpus=num_cpus,cloudfunc=cloudfunc,smooth=smooth,
                                                               smoothweight=smoothweight,filldry=filldry,
                                                               ozone=self.ozone,stepsperyear=self.stepsperyear,
                                                               orennayar=orennayar,debug=True)
@@ -1416,7 +1421,7 @@ class Model(object):
                                                               obsv_coords,gascon=self.gascon,
                                                               gravity=self.gravity,Tstar=self.startemp,
                                                               Rstar=self.starradius,orbdistances=orbdistances,
-                                                              num_cpus=self.ncpus,cloudfunc=cloudfunc,smooth=smooth,
+                                                              num_cpus=num_cpus,cloudfunc=cloudfunc,smooth=smooth,
                                                               smoothweight=smoothweight,filldry=filldry,
                                                               ozone=self.ozone,stepsperyear=self.stepsperyear,
                                                               orennayar=orennayar)
