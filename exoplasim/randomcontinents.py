@@ -79,7 +79,7 @@ def writePGM(name,heightfield):
         fw.write(filetext)
 
 def generate(name="Alderaan",continents=7,landfraction=0.29,maxz=10.0,nlats=32,hemispherelongitude=np.nan,
-             topo=False,orthographic=False):
+             ntopo=False,orthographic=False):
     '''Randomly generate continents up to specified land fraction. Topography optional.
 
     Generates name_surf_0172.sra, the land mask file, and (if requested) 
@@ -338,7 +338,7 @@ def generate(name="Alderaan",continents=7,landfraction=0.29,maxz=10.0,nlats=32,h
     
     dtopo = np.zeros_like(grid)
     
-    if topo:
+    if ntopo:
         seeds = np.copy(seams)
         gcratonsx,gcratonsy = np.gradient(cratons[1:-1,1:-1],lts,lns)
         seams[:] = np.sqrt(gcratonsx**2+gcratonsy**2)
@@ -499,7 +499,7 @@ def generate(name="Alderaan",continents=7,landfraction=0.29,maxz=10.0,nlats=32,h
         
         writePGM(name,hf)
         
-        if topo:
+        if ntopo:
             return lns,lts,grid,dtopo
         else:
             return lnt,lts,grid
