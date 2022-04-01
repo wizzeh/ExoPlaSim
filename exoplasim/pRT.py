@@ -1175,7 +1175,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         #icemap = 2.0*(ice>0.001) #1 mm probably not enough to make everything white
         ice = np.minimum(ice/0.02,1.0) #0-1 with a cap at 2 cm of snow
         snow = 1.0*(output.variables['snd'][t,...].flatten()>0.02)
-        forest = (1.0-np.exp(-0.5*output.variables['veglai'][t,...])).flatten() #Fraction of PAR that is absorbed by vegetation
+        forest = np.sqrt(1.0-np.exp(-0.5*output.variables['veglai'][t,...])).flatten() #Fraction of PAR that is absorbed by vegetation
         ice[forest>0] *= 1 - 0.82*forest[forest>0] 
         forest[ice>0] *= 0.82*forest[ice>0]
         bare = 1-(ice+forest)
@@ -1313,7 +1313,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         except BaseException as err:
             print("Error computing disk-averaged means")
             print(err)
-    column = _imgcolumn(atmosphere,pa[0,:],surfspecs[0,:],ta[0,:],hus[0,:],dql[0,:],
+    column = _imgcolumn(atmosphere,np.linspace(100.,1011.0,num=len(ta[0,:])),surfspecs[0,:],ta[0,:],hus[0,:],dql[0,:],
                         gases_vmr,gascon,h2o_lines,gravity,Tstar,Rstar*nc.r_sun,
                         starseparation*nc.AU,0.0,cloudfunc,smooth,smoothweight,filldry,o3[0],
                         bo3,co3,-1)
