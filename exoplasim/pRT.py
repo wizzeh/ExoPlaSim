@@ -1175,7 +1175,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         #icemap = 2.0*(ice>0.001) #1 mm probably not enough to make everything white
         ice = np.minimum(ice/0.02,1.0) #0-1 with a cap at 2 cm of snow
         snow = 1.0*(output.variables['snd'][t,...].flatten()>0.02)
-        forest = output.variables['vegf'][t,...].flatten()
+        forest = (1.0-np.exp(-0.5*output.variables['veglai'][t,...])).flatten() #Fraction of PAR that is absorbed by vegetation
         ice[forest>0] *= 1 - 0.82*forest[forest>0] 
         forest[ice>0] *= 0.82*forest[ice>0]
         bare = 1-(ice+forest)

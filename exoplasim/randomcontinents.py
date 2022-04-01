@@ -113,7 +113,7 @@ def generate(name="Alderaan",continents=7,landfraction=0.29,maxz=10.0,nlats=32,h
 
     if not nlats:
         import netCDF4 as nc
-        dims = nc.Dataset("T21.nc","r")
+        dims = nc.Dataset("/".join(__file__.split("/")[:-1])+"T21.nc","r")
     
         lts = dims.variables['lat'][:]
         lns = dims.variables['lon'][:]
