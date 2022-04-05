@@ -696,7 +696,7 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
     wvl = nc.c/atmosphere.freq/1e-4 #wavelength in microns
     
     flux = atmosphere.flux*1e6
-    flux[(flux>1.0e10)|(flux<0)] = np.nan
+    flux[(flux>10.0)|(flux<0)] = np.nan
     
     
     intensities = makeintensities(wvl,flux*(atmosphere.freq)*1.0e-3/wvl) 
@@ -896,7 +896,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             Tstar=5778.0,Rstar=1.0,orbdistances=1.0,h2o_lines='HITEMP',
             num_cpus=4,cloudfunc=None,smooth=True,smoothweight=0.50,filldry=0.0,
             stellarspec=None,ozone=False,stepsperyear=11520.,logfile=None,debug=False,
-            orennayar=True,sigma=None):
+            orennayar=True,sigma=None,allforest=False):
     '''Compute reflection+emission spectra for snapshot output
     
     This routine computes the reflection+emission spectrum for the planet at each
@@ -1175,7 +1175,13 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         #icemap = 2.0*(ice>0.001) #1 mm probably not enough to make everything white
         ice = np.minimum(ice/0.02,1.0) #0-1 with a cap at 2 cm of snow
         snow = 1.0*(output.variables['snd'][t,...].flatten()>0.02)
-        forest = np.sqrt(1.0-np.exp(-0.5*output.variables['veglai'][t,...])).flatten() #Fraction of PAR that is absorbed by vegetation
+        if allforest:
+            forest = np.ones_like(ice)
+        else:
+            if "veglai" in output.variables:
+                forest = np.sqrt(1.0-np.exp(-0.5*output.variables['veglai'][t,...])).flatten() #Fraction of PAR that is absorbed by vegetation
+            else:
+                forest = np.zeros_like(ice)
         ice[forest>0] *= 1 - 0.82*forest[forest>0] 
         forest[ice>0] *= 0.82*forest[ice>0]
         bare = 1-(ice+forest)
