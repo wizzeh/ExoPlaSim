@@ -1363,13 +1363,13 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     rlats = ilats*np.pi/180.
     o3 = a0o3+a1o3*abs(np.sin(rlats))+aco3*np.sin(rlats)*np.cos(2*np.pi*(dt-toffo3))
     
-    albedo = output.variables['alb'][t,...].flatten()
-    ice = output.variables['sit'][t,...]+output.variables['snd'][t,...]
+    albedo = output.variables['alb'][0,...].flatten()
+    ice = output.variables['sit'][0,...]+output.variables['snd'][0,...]
     ice = ice.flatten()
     #icemap = 2.0*(ice>0.001) #1 mm probably not enough to make everything white
     ice = np.minimum(ice/0.02,1.0) #0-1 with a cap at 2 cm of snow
-    snow = 1.0*(output.variables['snd'][t,...].flatten()>0.02)
-    forest = np.sqrt(1.0-np.exp(-0.5*output.variables['veglai'][t,...])).flatten() #Fraction of PAR that is absorbed by vegetation
+    snow = 1.0*(output.variables['snd'][0,...].flatten()>0.02)
+    forest = np.sqrt(1.0-np.exp(-0.5*output.variables['veglai'][0,...])).flatten() #Fraction of PAR that is absorbed by vegetation
     ice[forest>0] *= 1 - 0.82*forest[forest>0] 
     forest[ice>0] *= 0.82*forest[ice>0]
     bare = 1-(ice+forest)
@@ -1382,12 +1382,12 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     #for n in range(len(sfctype)):
     #    surfaces.append({'type':sfctype[n],'albedo':albedo[n]})
         
-    surfspecs = (sfcalbedo*(1-output.variables['sic'][t,...].flatten())[:,np.newaxis]+
-                 surfaces[2][np.newaxis,:]*(output.variables['sic'][t,...].flatten())[:,np.newaxis])
+    surfspecs = (sfcalbedo*(1-output.variables['sic'][0,...].flatten())[:,np.newaxis]+
+                 surfaces[2][np.newaxis,:]*(output.variables['sic'][0,...].flatten())[:,np.newaxis])
     surfspecs = (surfspecs*bare[:,np.newaxis] + surfaces[2][np.newaxis,:]*ice[:,np.newaxis]+
                  surfaces[3][np.newaxis,:]*forest[:,np.newaxis])
     
-    clt = output.variables['clt'][t,...].flatten()
+    clt = output.variables['clt'][0,...].flatten()
     for n in range(len(albedo)):
         bol_alb = np.trapz(stellarspec*surfspecs[n,:],x=spec.wvl)/ \
                   np.trapz(stellarspec,x=spec.wvl)
