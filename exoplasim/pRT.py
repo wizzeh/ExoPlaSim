@@ -1313,7 +1313,89 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         except BaseException as err:
             print("Error computing disk-averaged means")
             print(err)
-    column = _imgcolumn(atmosphere,np.linspace(100.,1011.0,num=len(ta[0,:])),surfspecs[0,:],ta[0,:],hus[0,:],dql[0,:],
+            
+    ts = output.variables['ts'][0,...].flatten()
+    ps = output.variables['ps'][0,...].flatten()
+    czen = output.variables['czen'][0,...]
+    ta = np.reshape(tas[0,...],(nlat*nlon,len(lev)))
+    hus = np.reshape(h2os[0,...],(nlat*nlon,len(lev)))
+    #cld = np.reshape(clds[t,...],(nlat*nlon,len(lev)))
+    dql = np.reshape(dqls[0,...],(nlat*nlon,len(lev)))
+    pa = ps[:,np.newaxis]*lev[np.newaxis,:]
+    
+    #pa has shape [nlon*nlat,lev]
+    
+    #Extend down to the surface, using surface pressure, surface temperature, no clouds, and the same
+    #humidity as the bottom vertical layer
+    pa = np.concatenate([pa,ps[:,np.newaxis]],axis=1)
+    hus = np.concatenate([hus,hus[:,-1][:,np.newaxis]],axis=1)
+    ta = np.concatenate([ta,ts[:,np.newaxis]],axis=1)
+    dql = np.concatenate([dql,np.zeros(len(dql))[:,np.newaxis]],axis=1)
+    
+    try:
+        starseparation = orbdistances[idx]
+    except:
+        starseparation = orbdistances
+    
+    if ozone is False:
+        a0o3 = 0.
+        a1o3 = 0.
+        aco3 = 0.
+        bo3 = 20000.
+        co3 = 5000.
+        toffo3 = 0.0
+    elif ozone is True:
+        a0o3 = 0.25
+        a1o3 = 0.11
+        aco3 = 0.08
+        bo3 = 20000.
+        co3 = 5000.
+        toffo3 = 0.25
+    else:
+        a0o3 = ozone["amount"]
+        a1o3 = ozone["varlat"]
+        aco3 = ozone["varseason"]
+        toffo3 = ozone["seasonoffset"]
+        bo3 = ozone["height"]
+        co3 = ozone["spread"]
+        
+    dt = output.variables['time'][0] / stepsperyear
+    rlats = ilats*np.pi/180.
+    o3 = a0o3+a1o3*abs(np.sin(rlats))+aco3*np.sin(rlats)*np.cos(2*np.pi*(dt-toffo3))
+    
+    albedo = output.variables['alb'][t,...].flatten()
+    ice = output.variables['sit'][t,...]+output.variables['snd'][t,...]
+    ice = ice.flatten()
+    #icemap = 2.0*(ice>0.001) #1 mm probably not enough to make everything white
+    ice = np.minimum(ice/0.02,1.0) #0-1 with a cap at 2 cm of snow
+    snow = 1.0*(output.variables['snd'][t,...].flatten()>0.02)
+    forest = np.sqrt(1.0-np.exp(-0.5*output.variables['veglai'][t,...])).flatten() #Fraction of PAR that is absorbed by vegetation
+    ice[forest>0] *= 1 - 0.82*forest[forest>0] 
+    forest[ice>0] *= 0.82*forest[ice>0]
+    bare = 1-(ice+forest)
+    #sfctype = np.maximum(sea,icemap).astype(int)
+       # Sea with no ice:  1
+       # Sea with ice:     2
+       # Land with no ice: 0   (since both are 0)
+       # Land with ice:    2
+    #surfaces = []
+    #for n in range(len(sfctype)):
+    #    surfaces.append({'type':sfctype[n],'albedo':albedo[n]})
+        
+    surfspecs = (sfcalbedo*(1-output.variables['sic'][t,...].flatten())[:,np.newaxis]+
+                 surfaces[2][np.newaxis,:]*(output.variables['sic'][t,...].flatten())[:,np.newaxis])
+    surfspecs = (surfspecs*bare[:,np.newaxis] + surfaces[2][np.newaxis,:]*ice[:,np.newaxis]+
+                 surfaces[3][np.newaxis,:]*forest[:,np.newaxis])
+    
+    clt = output.variables['clt'][t,...].flatten()
+    for n in range(len(albedo)):
+        bol_alb = np.trapz(stellarspec*surfspecs[n,:],x=spec.wvl)/ \
+                  np.trapz(stellarspec,x=spec.wvl)
+        fudge_factor = albedo[n]/bol_alb
+        surfspecs[n,:] *= fudge_factor
+            
+            
+    column = _imgcolumn(atmosphere,pa[0,:],surfspecs[0,:],ta[0,:],hus[0,:],dql[0,:],
                         gases_vmr,gascon,h2o_lines,gravity,Tstar,Rstar*nc.r_sun,
                         starseparation*nc.AU,0.0,cloudfunc,smooth,smoothweight,filldry,o3[0],
                         bo3,co3,-1)
