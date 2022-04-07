@@ -986,6 +986,8 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         to the mean, normalized such that `sigma=1.0` would imply truly isotropic microfacet distribution.
         If sigma is None (default), then sigma is determined based on the surface type in a column and
         whether clouds are present, using 0.4 for ground, 0.1 for ocean, 0.9 for snow/ice, and 0.95 for clouds.
+    allforest : bool, optional
+        If True, force all land surface to be forested.
     baremountainz : float, optional
         If vegetation is present, the geopotential above which mountains become bare rock instead of eroded vegetative regolith. Functionally, this means gray rock instead of brown/tan ground.
     colorspace : str or np.ndarray(3,3)
@@ -1197,6 +1199,8 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         snow = 1.0*(output.variables['snd'][t,...].flatten()>0.02)
         if allforest:
             forest = np.ones_like(ice)
+            desertf = np.zeros_like(ice)
+            mntf = np.zeros_like(ice)
         else:
             if "veglai" in output.variables: #Use dune sand for deserts and bare rock for mountaintops
                 forest = np.sqrt(1.0-np.exp(-0.5*output.variables['veglai'][t,...])).flatten() #Fraction of PAR that is absorbed by vegetation
