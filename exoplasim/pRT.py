@@ -1202,7 +1202,6 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
                 forest = np.sqrt(1.0-np.exp(-0.5*output.variables['veglai'][t,...])).flatten() #Fraction of PAR that is absorbed by vegetation
                 desertf = ((output.variables['lsm'][t,...]>0.5)*1.0*(output.variables['vegsoilc'][t,...]<0.01)*(output.variables['mrso'][t,...]<0.01)).flatten()
                 mntf = 1.0*(output.variables['netz'][t,...]>baremountainz).flatten()
-                surfspecs = sfcalbedo*(
             else:
                 forest = np.zeros_like(ice)
                 desertf = np.zeros_like(ice)
