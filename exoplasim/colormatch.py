@@ -1,136 +1,6 @@
 import numpy as np
 from scipy import interpolate
 
-#From http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
-#Assume whitepoint is D50 unless indicated otherwise
-colorgamuts = {"wide": np.array([[ 1.4628067, -0.1840623, -0.2743606],
-                                 [-0.5217933,  1.4472381,  0.0677227],
-                                 [ 0.0349342, -0.0968930,  1.2884099]]),
-               "sRGB_D65": np.array([[ 3.2404542, -1.5371385, -0.4985314],
-                                     [-0.9692660,  1.8760108,  0.0415560],
-                                     [ 0.0556434, -0.2040259,  1.0572252]]),
-               "sRGB": np.array([[ 3.1338561, -1.6168667, -0.4906146],
-                                 [-0.9787684,  1.9161415,  0.0334540],
-                                 [ 0.0719453, -0.2289914,  1.4052427]]),
-               "CIE_E": np.array([[ 2.3706743, -0.9000405, -0.4706338],
-                                  [-0.5138850,  1.4253036,  0.0885814],
-                                  [ 0.0052982, -0.0146949,  1.0093968]]),
-               "NTSC_C": np.array([[ 1.9099961, -0.5324542, -0.2882091],
-                                   [-0.9846663,  1.9991710, -0.0283082],
-                                   [ 0.0583056, -0.1183781,  0.8975535]]),
-               "ProPhoto": np.array([[ 1.3459433, -0.2556075, -0.0511118],
-                                     [-0.5445989,  1.5081673,  0.0205351],
-                                     [ 0.0000000,  0.0000000,  1.2118128]]),
-               "CIE": np.array([[ 2.3638081, -0.8676030, -0.4988161],
-                                [-0.5005940,  1.3962369,  0.1047562],
-                                [ 0.0141712, -0.0306400,  1.2323842]]),
-               "Apple": np.array([[ 2.8510695, -1.3605261, -0.4708281],
-                                  [-1.0927680,  2.0348871,  0.0227598],
-                                  [ 0.1027403, -0.2964984,  1.4510659]]),
-               "Adobe_D65": np.array([[ 2.0413690, -0.5649464, -0.3446944],
-                                      [-0.9692660,  1.8760108,  0.0415560],
-                                      [ 0.0134474, -0.1183897,  1.0154096]]),
-               "Apple_D65": np.array([[ 2.9515373, -1.2894116, -0.4738445],
-                                      [-1.0851093,  1.9908566,  0.0372026],
-                                      [ 0.0854934, -0.2694964,  1.0912975]]),
-               "Best": np.array([[ 1.6832270, -0.4282363, -0.2360185],
-                                 [-0.7710229,  1.7065571,  0.0446900],
-                                 [ 0.0400013, -0.0885376,  1.2723640]]),
-               "Bruce_D65": np.array([[ 2.7454669, -1.1358136, -0.4350269],
-                                      [-0.9692660,  1.8760108,  0.0415560],
-                                      [ 0.0112723, -0.1139754,  1.0132541]]),
-               "ColorMatch": np.array([[ 2.6422874, -1.2234270, -0.3930143],
-                                       [-1.1119763,  2.0590183,  0.0159614],
-                                       [ 0.0821699, -0.2807254,  1.4559877]]),
-               "Don": np.array([[ 1.7603902, -0.4881198, -0.2536126],
-                                [-0.7126288,  1.6527432,  0.0416715],
-                                [ 0.0078207, -0.0347411,  1.2447743]]),
-               "ECI": np.array([[ 1.7827618, -0.4969847, -0.2690101],
-                                [-0.9593623,  1.9477962, -0.0275807],
-                                [ 0.0859317, -0.1744674,  1.3228273]]),
-               "Ekta-Space-PS5": np.array([[ 2.0043819, -0.7304844, -0.2450052],
-                                           [-0.7110285,  1.6202126,  0.0792227],
-                                           [ 0.0381263, -0.0868780,  1.2725438]]),
-               "PAL/SECAM_D65": np.array([[ 3.0628971, -1.3931791, -0.4757517],
-                                          [-0.9692660,  1.8760108,  0.0415560],
-                                          [ 0.0678775, -0.2288548,  1.0693490]]),
-               "SMPTE-C_D65": np.array([[ 3.5053960, -1.7394894, -0.5439640],
-                                        [-1.0690722,  1.9778245,  0.0351722],
-                                        [ 0.0563200, -0.1970226,  1.0502026]]),
-               "Adobe": np.array([[ 1.9624274, -0.6105343, -0.3413404],
-                                  [-0.9787684,  1.9161415,  0.0334540],
-                                  [ 0.0286869, -0.1406752,  1.3487655]]),
-               "Bruce": np.array([[ 2.6502856, -1.2014485, -0.4289936],
-                                  [-0.9787684,  1.9161415,  0.0334540],
-                                  [ 0.0264570, -0.1361227,  1.3458542]]),
-               "NTSC": np.array([[ 1.8464881, -0.5521299, -0.2766458],
-                                 [-0.9826630,  2.0044755, -0.0690396],
-                                 [ 0.0736477, -0.1453020,  1.3018376]]),
-               "PAL/SECAM": np.array([[ 2.9603944, -1.4678519, -0.4685105],
-                                      [-0.9787684,  1.9161415,  0.0334540],
-                                      [ 0.0844874, -0.2545973,  1.4216174]]),
-               "SMPTE-C": np.array([[ 3.3921940, -1.8264027, -0.5385522],
-                                    [-1.0770996,  2.0213975,  0.0207989],
-                                    [ 0.0723073, -0.2217902,  1.3960932]])
-               }
-               
-#XYZ components for each whitepoint illuminant, again from Bruce Lindbloom
-illuminants = {"A"   :np.array([1.09850,1.00000,0.35585]),
-               "B"   :np.array([0.99072,1.00000,0.85223]),
-               "C"   :np.array([0.98074,1.00000,1.18232]),
-               "D50" :np.array([0.96422,1.00000,0.82521]),
-               "D55" :np.array([0.95682,1.00000,0.92149]),
-               "D65" :np.array([0.95047,1.00000,1.08883]),
-               "D75" :np.array([0.94972,1.00000,1.22638]),
-               "E"   :np.array([1.00000,1.00000,1.00000]),
-               "F2"  :np.array([0.99186,1.00000,0.67393]),
-               "F7"  :np.array([0.95041,1.00000,1.08747]),
-               "F11" :np.array([1.00962,1.00000,0.64350])}
-
-illuminantsxy = {"A"   : np.array([illuminants["A"  ][0]/np.sum(illuminants["A"  ]),
-                                   illuminants["A"  ][1]/np.sum(illuminants["A"  ])]),    
-                 "B"   : np.array([illuminants["B"  ][0]/np.sum(illuminants["B"  ]),
-                                   illuminants["B"  ][1]/np.sum(illuminants["B"  ])]),    
-                 "C"   : np.array([illuminants["C"  ][0]/np.sum(illuminants["C"  ]),
-                                   illuminants["C"  ][1]/np.sum(illuminants["C"  ])]),    
-                 "D50" : np.array([illuminants["D50"][0]/np.sum(illuminants["D50"]),
-                                   illuminants["D50"][1]/np.sum(illuminants["D50"])]),    
-                 "D55" : np.array([illuminants["D55"][0]/np.sum(illuminants["D55"]),
-                                   illuminants["D55"][1]/np.sum(illuminants["D55"])]),    
-                 "D65" : np.array([illuminants["D65"][0]/np.sum(illuminants["D65"]),
-                                   illuminants["D65"][1]/np.sum(illuminants["D65"])]),    
-                 "D75" : np.array([illuminants["D75"][0]/np.sum(illuminants["D75"]),
-                                   illuminants["D75"][1]/np.sum(illuminants["D75"])]),    
-                 "E"   : np.array([illuminants["E"  ][0]/np.sum(illuminants["E"  ]),
-                                   illuminants["E"  ][1]/np.sum(illuminants["E"  ])]),    
-                 "F2"  : np.array([illuminants["F2" ][0]/np.sum(illuminants["F2" ]),
-                                   illuminants["F2" ][1]/np.sum(illuminants["F2" ])]),    
-                 "F7"  : np.array([illuminants["F7" ][0]/np.sum(illuminants["F7" ]),
-                                   illuminants["F7" ][1]/np.sum(illuminants["F7" ])]),    
-                 "F11" : np.array([illuminants["F11"][0]/np.sum(illuminants["F11"]),
-                                   illuminants["F11"][1]/np.sum(illuminants["F11"])])}    
-    
-    
-#Compute the internal normlization factor for each colorspace    
-_gamuts = list(colorgamuts.keys())               
-for gamut in _gamuts:
-    if "_" in gamut:
-        il = gamut.split("_")[-1]
-    else:
-        il = "D50"
-    white = np.array(xyz2rgb(illuminantsxy[il][0],illuminantsxy[il][1],1.0,gamut=gamut))
-    extranorm = 1.0/white.max() #So the equal-power colour has a max RGB value of 1.0
-    colorgamuts["%s_norm"%gamut] = extranorm
-#Compute the purity of each colorspace--i.e. given the white illuminant, how white is it? Pure white is
-#(1,1,1).
-for gamut in _gamuts:
-    if "_" in gamut:
-        il = gamut.split("_")[-1]
-    else:
-        il = "D50"
-    white = np.array(xyz2rgb(illuminantsxy[il][0],illuminantsxy[il][1],1.0,gamut=gamut))
-    purity = 1.0 - np.mean(abs(1.0-white))
-    colorgamuts["%s_purity"%gamut] = purity
 
 cie_wvl,cie_xx,cie_yy,cie_zz = np.loadtxt("/".join(__file__.split("/")[:-1])+"/cmf.csv",unpack=True,delimiter=',')
 
@@ -281,6 +151,137 @@ def xyz2rgb(x,y,normalization,gamut="sRGB"):
     return r,g,b
 
 
+#From http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+#Assume whitepoint is D50 unless indicated otherwise
+colorgamuts = {"wide": np.array([[ 1.4628067, -0.1840623, -0.2743606],
+                                 [-0.5217933,  1.4472381,  0.0677227],
+                                 [ 0.0349342, -0.0968930,  1.2884099]]),
+               "sRGB_D65": np.array([[ 3.2404542, -1.5371385, -0.4985314],
+                                     [-0.9692660,  1.8760108,  0.0415560],
+                                     [ 0.0556434, -0.2040259,  1.0572252]]),
+               "sRGB": np.array([[ 3.1338561, -1.6168667, -0.4906146],
+                                 [-0.9787684,  1.9161415,  0.0334540],
+                                 [ 0.0719453, -0.2289914,  1.4052427]]),
+               "CIE_E": np.array([[ 2.3706743, -0.9000405, -0.4706338],
+                                  [-0.5138850,  1.4253036,  0.0885814],
+                                  [ 0.0052982, -0.0146949,  1.0093968]]),
+               "NTSC_C": np.array([[ 1.9099961, -0.5324542, -0.2882091],
+                                   [-0.9846663,  1.9991710, -0.0283082],
+                                   [ 0.0583056, -0.1183781,  0.8975535]]),
+               "ProPhoto": np.array([[ 1.3459433, -0.2556075, -0.0511118],
+                                     [-0.5445989,  1.5081673,  0.0205351],
+                                     [ 0.0000000,  0.0000000,  1.2118128]]),
+               "CIE": np.array([[ 2.3638081, -0.8676030, -0.4988161],
+                                [-0.5005940,  1.3962369,  0.1047562],
+                                [ 0.0141712, -0.0306400,  1.2323842]]),
+               "Apple": np.array([[ 2.8510695, -1.3605261, -0.4708281],
+                                  [-1.0927680,  2.0348871,  0.0227598],
+                                  [ 0.1027403, -0.2964984,  1.4510659]]),
+               "Adobe_D65": np.array([[ 2.0413690, -0.5649464, -0.3446944],
+                                      [-0.9692660,  1.8760108,  0.0415560],
+                                      [ 0.0134474, -0.1183897,  1.0154096]]),
+               "Apple_D65": np.array([[ 2.9515373, -1.2894116, -0.4738445],
+                                      [-1.0851093,  1.9908566,  0.0372026],
+                                      [ 0.0854934, -0.2694964,  1.0912975]]),
+               "Best": np.array([[ 1.6832270, -0.4282363, -0.2360185],
+                                 [-0.7710229,  1.7065571,  0.0446900],
+                                 [ 0.0400013, -0.0885376,  1.2723640]]),
+               "Bruce_D65": np.array([[ 2.7454669, -1.1358136, -0.4350269],
+                                      [-0.9692660,  1.8760108,  0.0415560],
+                                      [ 0.0112723, -0.1139754,  1.0132541]]),
+               "ColorMatch": np.array([[ 2.6422874, -1.2234270, -0.3930143],
+                                       [-1.1119763,  2.0590183,  0.0159614],
+                                       [ 0.0821699, -0.2807254,  1.4559877]]),
+               "Don": np.array([[ 1.7603902, -0.4881198, -0.2536126],
+                                [-0.7126288,  1.6527432,  0.0416715],
+                                [ 0.0078207, -0.0347411,  1.2447743]]),
+               "ECI": np.array([[ 1.7827618, -0.4969847, -0.2690101],
+                                [-0.9593623,  1.9477962, -0.0275807],
+                                [ 0.0859317, -0.1744674,  1.3228273]]),
+               "Ekta-Space-PS5": np.array([[ 2.0043819, -0.7304844, -0.2450052],
+                                           [-0.7110285,  1.6202126,  0.0792227],
+                                           [ 0.0381263, -0.0868780,  1.2725438]]),
+               "PAL/SECAM_D65": np.array([[ 3.0628971, -1.3931791, -0.4757517],
+                                          [-0.9692660,  1.8760108,  0.0415560],
+                                          [ 0.0678775, -0.2288548,  1.0693490]]),
+               "SMPTE-C_D65": np.array([[ 3.5053960, -1.7394894, -0.5439640],
+                                        [-1.0690722,  1.9778245,  0.0351722],
+                                        [ 0.0563200, -0.1970226,  1.0502026]]),
+               "Adobe": np.array([[ 1.9624274, -0.6105343, -0.3413404],
+                                  [-0.9787684,  1.9161415,  0.0334540],
+                                  [ 0.0286869, -0.1406752,  1.3487655]]),
+               "Bruce": np.array([[ 2.6502856, -1.2014485, -0.4289936],
+                                  [-0.9787684,  1.9161415,  0.0334540],
+                                  [ 0.0264570, -0.1361227,  1.3458542]]),
+               "NTSC": np.array([[ 1.8464881, -0.5521299, -0.2766458],
+                                 [-0.9826630,  2.0044755, -0.0690396],
+                                 [ 0.0736477, -0.1453020,  1.3018376]]),
+               "PAL/SECAM": np.array([[ 2.9603944, -1.4678519, -0.4685105],
+                                      [-0.9787684,  1.9161415,  0.0334540],
+                                      [ 0.0844874, -0.2545973,  1.4216174]]),
+               "SMPTE-C": np.array([[ 3.3921940, -1.8264027, -0.5385522],
+                                    [-1.0770996,  2.0213975,  0.0207989],
+                                    [ 0.0723073, -0.2217902,  1.3960932]])
+               }
+               
+#XYZ components for each whitepoint illuminant, again from Bruce Lindbloom
+illuminants = {"A"   :np.array([1.09850,1.00000,0.35585]),
+               "B"   :np.array([0.99072,1.00000,0.85223]),
+               "C"   :np.array([0.98074,1.00000,1.18232]),
+               "D50" :np.array([0.96422,1.00000,0.82521]),
+               "D55" :np.array([0.95682,1.00000,0.92149]),
+               "D65" :np.array([0.95047,1.00000,1.08883]),
+               "D75" :np.array([0.94972,1.00000,1.22638]),
+               "E"   :np.array([1.00000,1.00000,1.00000]),
+               "F2"  :np.array([0.99186,1.00000,0.67393]),
+               "F7"  :np.array([0.95041,1.00000,1.08747]),
+               "F11" :np.array([1.00962,1.00000,0.64350])}
+
+illuminantsxy = {"A"   : np.array([illuminants["A"  ][0]/np.sum(illuminants["A"  ]),
+                                   illuminants["A"  ][1]/np.sum(illuminants["A"  ])]),    
+                 "B"   : np.array([illuminants["B"  ][0]/np.sum(illuminants["B"  ]),
+                                   illuminants["B"  ][1]/np.sum(illuminants["B"  ])]),    
+                 "C"   : np.array([illuminants["C"  ][0]/np.sum(illuminants["C"  ]),
+                                   illuminants["C"  ][1]/np.sum(illuminants["C"  ])]),    
+                 "D50" : np.array([illuminants["D50"][0]/np.sum(illuminants["D50"]),
+                                   illuminants["D50"][1]/np.sum(illuminants["D50"])]),    
+                 "D55" : np.array([illuminants["D55"][0]/np.sum(illuminants["D55"]),
+                                   illuminants["D55"][1]/np.sum(illuminants["D55"])]),    
+                 "D65" : np.array([illuminants["D65"][0]/np.sum(illuminants["D65"]),
+                                   illuminants["D65"][1]/np.sum(illuminants["D65"])]),    
+                 "D75" : np.array([illuminants["D75"][0]/np.sum(illuminants["D75"]),
+                                   illuminants["D75"][1]/np.sum(illuminants["D75"])]),    
+                 "E"   : np.array([illuminants["E"  ][0]/np.sum(illuminants["E"  ]),
+                                   illuminants["E"  ][1]/np.sum(illuminants["E"  ])]),    
+                 "F2"  : np.array([illuminants["F2" ][0]/np.sum(illuminants["F2" ]),
+                                   illuminants["F2" ][1]/np.sum(illuminants["F2" ])]),    
+                 "F7"  : np.array([illuminants["F7" ][0]/np.sum(illuminants["F7" ]),
+                                   illuminants["F7" ][1]/np.sum(illuminants["F7" ])]),    
+                 "F11" : np.array([illuminants["F11"][0]/np.sum(illuminants["F11"]),
+                                   illuminants["F11"][1]/np.sum(illuminants["F11"])])}    
+    
+    
+#Compute the internal normlization factor for each colorspace    
+_gamuts = list(colorgamuts.keys())               
+for gamut in _gamuts:
+    if "_" in gamut:
+        il = gamut.split("_")[-1]
+    else:
+        il = "D50"
+    white = np.array(xyz2rgb(illuminantsxy[il][0],illuminantsxy[il][1],1.0,gamut=gamut))
+    extranorm = 1.0/white.max() #So the equal-power colour has a max RGB value of 1.0
+    colorgamuts["%s_norm"%gamut] = extranorm
+#Compute the purity of each colorspace--i.e. given the white illuminant, how white is it? Pure white is
+#(1,1,1).
+for gamut in _gamuts:
+    if "_" in gamut:
+        il = gamut.split("_")[-1]
+    else:
+        il = "D50"
+    white = np.array(xyz2rgb(illuminantsxy[il][0],illuminantsxy[il][1],1.0,gamut=gamut))
+    purity = 1.0 - np.mean(abs(1.0-white))
+    colorgamuts["%s_purity"%gamut] = purity
+    
 def spec2rgb(wvl,spec,normalization=None,gamma=True,gamut="sRGB"):
     '''Convert a spectrum to (R,G,B) tuple, with optional normalization
     
