@@ -111,9 +111,9 @@ illuminantsxy = {"A"   : np.array([illuminants["A"  ][0]/np.sum(illuminants["A" 
                                    illuminants["F11"][1]/np.sum(illuminants["F11"])])}    
     
     
-#Compute the internal normalization factor for each colorspace    
-_gamuts = list(colorgamuts).keys()               
-for gamut in colorgamuts:
+#Compute the internal normlization factor for each colorspace    
+_gamuts = list(colorgamuts.keys())               
+for gamut in _gamuts:
     if "_" in gamut:
         il = gamut.split("_")[-1]
     else:
