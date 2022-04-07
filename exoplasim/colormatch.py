@@ -306,7 +306,7 @@ def spec2rgb(wvl,spec,normalization=None,gamma=True,gamut="sRGB"):
     '''
     x,y,I = makexyz(wvl,spec)
     if normalization:
-        norm = normalization/I
+        norm = normalization
     else:
         norm = 1.0
     
