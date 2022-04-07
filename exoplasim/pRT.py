@@ -902,7 +902,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             num_cpus=4,cloudfunc=None,smooth=True,smoothweight=0.50,filldry=0.0,
             stellarspec=None,ozone=False,stepsperyear=11520.,logfile=None,debug=False,
             orennayar=True,sigma=None,allforest=False,baremountainz=5.0e4,
-            colorspace="sRGB",gamma=True):
+            colorspace="sRGB",gamma=True,consistency=True):
     '''Compute reflection+emission spectra for snapshot output
     
     This routine computes the reflection+emission spectrum for the planet at each
@@ -995,6 +995,8 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     gamma : bool or float, optional
         If True, use the piecewise gamma-function defined for sRGB; otherwise if a float, use rgb^(1/gamma).
         If None, gamma=1.0 is used.
+    consistency : bool, optional
+        If True, force surface albedo to match model output
         
         
     Returns
@@ -1216,7 +1218,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         surfspecs[mntf>0.5] = surfaces[0]
         ice[forest>0] *= 1 - 0.82*forest[forest>0] 
         forest[ice>0] *= 0.82*forest[ice>0]
-        albedo[forest>0] = (1-forest)*albedo[n] + forest*0.3
+        albedo[forest>0] = (1-forest[forest>0])*albedo[forest>0] + forest[forest>0]*0.3
         bare = 1-(ice+forest)
         #sfctype = np.maximum(sea,icemap).astype(int)
            # Sea with no ice:  1
