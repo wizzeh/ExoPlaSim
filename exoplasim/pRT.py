@@ -862,7 +862,7 @@ def orennayarcorrection(intensity,lon,lat,sollon,sollat,zenith,observer,albedo,s
     
     return intensity*L
 
-def makecolors(intensities):
+def makecolors(intensities,gamma=True,colorspace="sRGB"):
     '''Convert (x,y,Y) intensities to RGB values.
     
     Uses CIE color-matching functions and a wide-gamut RGB colorspace to
@@ -886,9 +886,14 @@ def makecolors(intensities):
     colors = np.zeros((flatshape,3))
     for k in range(flatshape):
         colors[k,:] = cmatch.xyz2rgb(flatintensities[k,0],flatintensities[k,1],
-                                     flatintensities[k,2])
+                                     flatintensities[k,2],gamut=colorspace)
     colors /= np.nanmax(colors)
     colors = np.reshape(colors,ogshape)
+    if gamma is True:
+        colors[colors<0.0031308] = 12.92*colors[colors<0.0031308]
+        colors[colors>=0.0031308] = 1.055*colors[colors>=0.0031308]**(1./2.4)-0.055
+    elif gamma is not None:
+        colors = colors**(1./gamma)
     return colors
     
     
@@ -896,7 +901,8 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             Tstar=5778.0,Rstar=1.0,orbdistances=1.0,h2o_lines='HITEMP',
             num_cpus=4,cloudfunc=None,smooth=True,smoothweight=0.50,filldry=0.0,
             stellarspec=None,ozone=False,stepsperyear=11520.,logfile=None,debug=False,
-            orennayar=True,sigma=None,allforest=False):
+            orennayar=True,sigma=None,allforest=False,baremountainz=5.0e4,
+            colorspace="sRGB",gamma=True):
     '''Compute reflection+emission spectra for snapshot output
     
     This routine computes the reflection+emission spectrum for the planet at each
@@ -980,6 +986,14 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         to the mean, normalized such that `sigma=1.0` would imply truly isotropic microfacet distribution.
         If sigma is None (default), then sigma is determined based on the surface type in a column and
         whether clouds are present, using 0.4 for ground, 0.1 for ocean, 0.9 for snow/ice, and 0.95 for clouds.
+    baremountainz : float, optional
+        If vegetation is present, the geopotential above which mountains become bare rock instead of eroded vegetative regolith. Functionally, this means gray rock instead of brown/tan ground.
+    colorspace : str or np.ndarray(3,3)
+        Color gamut to be used. For available built-in color gamuts, see colormatch.colorgamuts.
+    gamma : bool or float, optional
+        If True, use the piecewise gamma-function defined for sRGB; otherwise if a float, use rgb^(1/gamma).
+        If None, gamma=1.0 is used.
+        
         
     Returns
     -------
@@ -1081,11 +1095,17 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     darea = darea.flatten()
     
     surfaces = [spec.modelspecs["groundblend"],
-                spec.modelspecs["oceanblend"],
+                spec.basespecs["USGSocean"],
                 spec.modelspecs["iceblend"],
-                spec.modelspecs["earthveg"]]
+                spec.basespecs["USGSaspenforest"],
+                spec.basespecs["dunesand"],
+                0.5*(spec.basespecs["brownsand"]+spec.basespecs["yellowloam"])]
     
-    sfcalbedo = surfaces[1][np.newaxis,:]*lsm[:,np.newaxis] + surfaces[0][np.newaxis,:]*(1-lsm)[:,np.newaxis]
+    if "veglai" in output.variables:
+        sfcalbedo = surfaces[1][np.newaxis,:]*sea[:,np.newaxis] + surfaces[5][np.newaxis,:]*(1-sea)[:,np.newaxis]
+    else:
+        sfcalbedo = surfaces[1][np.newaxis,:]*sea[:,np.newaxis] + surfaces[0][np.newaxis,:]*(1-sea)[:,np.newaxis]
+        
     
     if orennayar and sigma is None:
         sigmas = [0.4,0.1,0.9,0.95] #roughnesses for ground,ocean,ice/snow,and clouds
@@ -1178,12 +1198,22 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         if allforest:
             forest = np.ones_like(ice)
         else:
-            if "veglai" in output.variables:
+            if "veglai" in output.variables: #Use dune sand for deserts and bare rock for mountaintops
                 forest = np.sqrt(1.0-np.exp(-0.5*output.variables['veglai'][t,...])).flatten() #Fraction of PAR that is absorbed by vegetation
+                desertf = ((output.variables['lsm'][t,...]>0.5)*1.0*(output.variables['vegsoilc'][t,...]<0.01)*(output.variables['mrso'][t,...]<0.01)).flatten()
+                mntf = 1.0*(output.variables['netz'][t,...]>baremountainz).flatten()
+                surfspecs = sfcalbedo*(
             else:
                 forest = np.zeros_like(ice)
+                desertf = np.zeros_like(ice)
+                mntf = np.zeros_like(ice)
+        
+        surfspecs = np.copy(sfcalbedo)
+        surfspecs[desertf>0.5] = surfaces[4]
+        surfspecs[mntf>0.5] = surfaces[0]
         ice[forest>0] *= 1 - 0.82*forest[forest>0] 
         forest[ice>0] *= 0.82*forest[ice>0]
+        albedo[forest>0] = (1-forest)*albedo[n] + forest*0.3
         bare = 1-(ice+forest)
         #sfctype = np.maximum(sea,icemap).astype(int)
            # Sea with no ice:  1
@@ -1194,7 +1224,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         #for n in range(len(sfctype)):
         #    surfaces.append({'type':sfctype[n],'albedo':albedo[n]})
             
-        surfspecs = (sfcalbedo*(1-output.variables['sic'][t,...].flatten())[:,np.newaxis]+
+        surfspecs = (surfspecs*(1-output.variables['sic'][t,...].flatten())[:,np.newaxis]+
                      surfaces[2][np.newaxis,:]*(output.variables['sic'][t,...].flatten())[:,np.newaxis])
         surfspecs = (surfspecs*bare[:,np.newaxis] + surfaces[2][np.newaxis,:]*ice[:,np.newaxis]+
                      surfaces[3][np.newaxis,:]*forest[:,np.newaxis])
@@ -1210,11 +1240,12 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         elif orennayar and sigma is not None:
             sigma = np.ones_like(ice)*sigma
         
-        for n in range(len(albedo)):
-            bol_alb = np.trapz(stellarspec*surfspecs[n,:],x=spec.wvl)/ \
-                      np.trapz(stellarspec,x=spec.wvl)
-            fudge_factor = albedo[n]/bol_alb
-            surfspecs[n,:] *= fudge_factor
+        if consistency:
+            for n in range(len(albedo)):
+                bol_alb = np.trapz(stellarspec*surfspecs[n,:],x=spec.wvl)/ \
+                        np.trapz(stellarspec,x=spec.wvl)
+                fudge_factor = albedo[n]/bol_alb
+                surfspecs[n,:] *= fudge_factor
             
         if debug:
             albedomap[idx,:,:] = surfspecs[:,:]
@@ -1309,7 +1340,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             intensities[idx,...] = photos[idx,...]
         
         for idv in range(photos.shape[1]):
-            photos[idx,idv,...] = makecolors(photos[idx,idv,...])
+            photos[idx,idv,...] = makecolors(photos[idx,idv,...],gamma=gamma,colorspace=colorspace)
         
         try:
             for idv in range(projectedareas.shape[1]):
