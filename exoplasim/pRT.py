@@ -1139,10 +1139,10 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         
         #Extend down to the surface, using surface pressure, surface temperature, no clouds, and the same
         #humidity as the bottom vertical layer
-        pa = np.concatenate([pa,ps[:,np.newaxis]],axis=1)
-        hus = np.concatenate([hus,hus[:,-1][:,np.newaxis]],axis=1)
-        ta = np.concatenate([ta,ts[:,np.newaxis]],axis=1)
-        dql = np.concatenate([dql,np.zeros(len(dql))[:,np.newaxis]],axis=1)
+        pa  = np.ma.getdata(np.concatenate([pa,ps[:,np.newaxis]],axis=1))
+        hus = np.ma.getdata(np.concatenate([hus,hus[:,-1][:,np.newaxis]],axis=1))
+        ta  = np.ma.getdata(np.concatenate([ta,ts[:,np.newaxis]],axis=1))
+        dql = np.ma.getdata(np.concatenate([dql,np.zeros(len(dql))[:,np.newaxis]],axis=1))
         
         try:
             starseparation = orbdistances[idx]
