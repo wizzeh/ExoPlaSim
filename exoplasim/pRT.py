@@ -689,6 +689,11 @@ def _imgcolumn(atmosphere, pressures, surface, temperature, humidity, clouds,
         kwargs["Rstar"]=Rstar
         kwargs["semimajoraxis"]=starseparation
     
+    extta = np.ma.getdata(extta)
+    for gas in mass_fractions:
+        mass_fractions[gas] = np.ma.getdata(mass_fractions[gas])
+    MMW = np.ma.getdata(MMW)
+    
     #Compute flux
     atmosphere.calc_flux(extta, mass_fractions, gravity, MMW,
                          geometry='non-isotropic',**kwargs)
@@ -1410,8 +1415,11 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
     ice = ice.flatten()
     #icemap = 2.0*(ice>0.001) #1 mm probably not enough to make everything white
     ice = np.minimum(ice/0.02,1.0) #0-1 with a cap at 2 cm of snow
-    snow = 1.0*(output.variables['snd'][0,...].flatten()>0.02)
-    forest = np.sqrt(1.0-np.exp(-0.5*output.variables['veglai'][0,...])).flatten() #Fraction of PAR that is absorbed by vegetation
+    snow = 1.0*(output.variables['snd'][0,...].flatten()>0.02) absorbed by vegetation
+    forest = np.zeros_like(ice)
+    desertf = np.zeros_like(ice)
+    mntf = np.zeros_like(ice)
+    
     ice[forest>0] *= 1 - 0.82*forest[forest>0] 
     forest[ice>0] *= 0.82*forest[ice>0]
     bare = 1-(ice+forest)
