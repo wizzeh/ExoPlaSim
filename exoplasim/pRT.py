@@ -1103,12 +1103,12 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             darea[jlat,jlon] = abs(np.sin(lt1[jlat])-np.sin(lt1[jlat+1]))*abs(dln)
     darea = darea.flatten()
     
-    surfaces = [spec.modelspecs["groundblend"],
-                spec.basespecs["USGSocean"],
-                spec.modelspecs["iceblend"],
-                spec.basespecs["USGSaspenforest"],
-                spec.basespecs["dunesand"],
-                0.5*(spec.basespecs["brownsand"]+spec.basespecs["yellowloam"])]
+    surfaces = [spec.modelspecs["groundblend"]*0.01,
+                spec.basespecs["USGSocean"]*0.01,
+                spec.modelspecs["iceblend"]*0.01,
+                spec.basespecs["USGSaspenforest"]*0.01,
+                spec.basespecs["dunesand"]*0.01,
+                0.5*(spec.basespecs["brownsand"]+spec.basespecs["yellowloam"])*0.01]
     
     if "veglai" in output.variables:
         sfcalbedo = surfaces[1][np.newaxis,:]*sea[:,np.newaxis] + surfaces[5][np.newaxis,:]*(1-sea)[:,np.newaxis]
