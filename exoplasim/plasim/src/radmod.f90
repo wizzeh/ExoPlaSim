@@ -716,7 +716,9 @@
          
          minwavel = minwavel*1.0e-9
          
+         oldfixedlon = fixedlon
          if (nrestart > 0.) call get_restart_real('fixedlon',fixedlon)
+         if ((fixedlon .ne. oldfixedlon) .and. (desync .eq. 0.0)) fixedlon=oldfixedlon
          
          if ((necham.eq.1).and.(necham6.eq.1)) necham=0 !necham6 overrides necham
       endif ! (mypid==NROOT)

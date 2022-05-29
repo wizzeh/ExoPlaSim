@@ -907,7 +907,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             num_cpus=4,cloudfunc=None,smooth=True,smoothweight=0.50,filldry=0.0,
             stellarspec=None,ozone=False,stepsperyear=11520.,logfile=None,debug=False,
             orennayar=True,sigma=None,allforest=False,baremountainz=5.0e4,
-            colorspace="sRGB",gamma=True,consistency=True):
+            colorspace="sRGB",gamma=True,consistency=True,vegpowerlaw=1.0):
     '''Compute reflection+emission spectra for snapshot output
     
     This routine computes the reflection+emission spectrum for the planet at each
@@ -1002,6 +1002,10 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         If None, gamma=1.0 is used.
     consistency : bool, optional
         If True, force surface albedo to match model output
+    vegpowerlaw : float, optional
+        Scale the apparent vegetation fraction by a power law. Setting this to 0.1, for example,
+        will increase the area that appears partially-vegetated, while setting it to 1.0 leaves
+        vegetation unchanged.
         
         
     Returns
@@ -1210,7 +1214,8 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
             mntf = np.zeros_like(ice)
         else:
             if "veglai" in output.variables: #Use dune sand for deserts and bare rock for mountaintops
-                forest = np.sqrt(1.0-np.exp(-0.5*output.variables['veglai'][t,...])).flatten() #Fraction of PAR that is absorbed by vegetation
+                vlai = output.variables['veglai'][t,...]
+                forest = (np.exp(-vlai)*vlai+(1.0-np.exp(-vlai))*(1.0-np.exp(-0.5*vlai))**vegpowerlaw).flatten() #Fraction of PAR that is absorbed by vegetation
                 desertf = ((output.variables['lsm'][t,...]>0.5)*1.0*(output.variables['vegsoilc'][t,...]<0.01)*(output.variables['mrso'][t,...]<0.01)).flatten()
                 mntf = 1.0*(output.variables['netz'][t,...]>baremountainz).flatten()
             else:
@@ -1351,7 +1356,7 @@ def image(output,imagetimes,gases_vmr, obsv_coords, gascon=287.0, gravity=9.8066
         
         for idv in range(photos.shape[1]):
             photos[idx,idv,...] = makecolors(photos[idx,idv,...],gamma=gamma,colorspace=colorspace)
-        
+        #Investigate why splitting intensities and colors instead of specs2rgb produces different results
         try:
             for idv in range(projectedareas.shape[1]):
                 view = projectedareas[idx,idv,:]
