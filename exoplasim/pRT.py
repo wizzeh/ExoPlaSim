@@ -887,7 +887,8 @@ def makecolors(intensities,gamma=True,colorspace="sRGB"):
     ogshape = intensities.shape
     flatshape = np.product(ogshape[:-1])
     flatintensities = np.reshape(intensities,(flatshape,3))
-    flatintensities[:,2] -= np.nanmin(flatintensities[:,2]) #So we have 0-F range
+    #flatintensities[:,2] -= np.nanmin(flatintensities[:,2]) #So we have 0-F range
+    #Is the above line necessary? It's the source of discrepancy with specs2rgb.
     norms = flatintensities[:,2]/np.nanmax(flatintensities[:,2])
     colors = np.zeros((flatshape,3))
     for k in range(flatshape):
