@@ -1599,7 +1599,8 @@ class Model(object):
     
             noutput : bool, optional 
                True/False. Whether or not model output should be written.
-               restartfile: Path to a restart file to use for initial conditions. Can be None.
+            restartfile : str, optional
+               Path to a restart file to use for initial conditions. Can be None.
             writefrequency : int, optional 
                How many times per day ExoPlaSim should write output. Ignored by
                default--default is to write time-averaged output once every 5 days.
