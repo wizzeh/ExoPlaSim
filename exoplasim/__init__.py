@@ -1310,8 +1310,60 @@ class Model(object):
         else:
             raise RuntimeError("Output file %s not found."%(self.workdir+"/"+name))
     
-    def transit(self,year,times,snapshot=True,highcadence=False,h2o_linelist='Exomol',
-                num_cpus=1,cloudfunc=None,smooth=False,smoothweight=0.95,logfile=None):
+    def transit(self,year,times,inputfile=None,snapshot=True,highcadence=False,
+                h2o_linelist='Exomol',
+                num_cpus=1,cloudfunc=None,smooth=False,smoothweight=0.95,logfile=None,
+                filename=None):
+    '''Compute transmission spectra for snapshot output
+    
+    This routine computes the transmission spectrum for each atmospheric column
+    along the terminator, for each time in transittimes.
+    
+    Note: This routine does not currently include emission from atmospheric layers.
+    
+    Parameters
+    ----------
+    year : int
+        Year of output that should be imaged.
+    times : list(int)
+        List of time indices at which the image should be computed.
+    inputfile : str, optional
+        If provided, ignore the year argument and image the provided output file.
+    snapshot : bool, optional
+        Whether snapshot output should be used.
+    highcadence : bool, optional
+        Whether high-cadence output should be used.
+    h2o_lines : {'HITEMP','EXOMOL'}, optional
+        Either 'HITEMP' or 'EXOMOL'--the line list from which H2O absorption 
+        should be sourced
+    num_cpus : int, optional
+        The number of CPUs to use
+    cloudfunc : function, optional
+        A routine which takes pressure, temperature, and cloud water content
+        as arguments, and returns keyword arguments to be unpacked into calc_flux_transm.
+        If not specified, `basicclouds` will be used.
+    smooth : bool, optional
+        Whether or not to smooth humidity and cloud columns. As of Nov 12, 2021, it 
+        is recommended that you use smooth=True for well-behaved spectra. This is a
+        conservative smoothing operation, meaning the water and cloud column mass should
+        be conserved--what this does is move some water from the water-rich layers into
+        the layers directly above and below.
+    smoothweight : float, optional
+        The fraction of the water in a layer that should be retained during smoothing.
+        A higher value means the smoothing is less severe. 0.95 is probably the upper
+        limit for well-behaved spectra.
+    logfile : str, optional
+        Optional log file to which diagnostic info will be written.
+    filename : str, optional
+        Output filename; will be auto-generated if None.
+        
+    Returns
+    -------
+    petitRADTRANS.Atmosphere, str
+        pRT Atmosphere object, filename the output file generated. Output file
+        can be stored in any of ExoPlaSim's standard supported output formats.
+        Transit radius is in km.
+    '''
         
         
         if year<0:
@@ -1319,14 +1371,20 @@ class Model(object):
             #year = nfiles+year
             year += self.currentyear #year=-1 should give the most recent year
     
-        ncd = self.get(year,snapshot=snapshot,highcadence=highcadence)
-        
-        if snapshot and not highcadence:
-            name = self.workdir+"/snapshots/MOST_SNAP_transit.%05d%s"%(year,self.extension)
-        elif highcadence and not snapshot:
-            name = self.workdir+"/highcadence/MOST_HC_transit.%05d%s"%(year,self.extension)
+        if inputfile is None:
+            ncd = self.get(year,snapshot=snapshot,highcadence=highcadence)
         else:
-            name = self.workdir+"/MOST_transit.%05d%s"%(year,self.extension)
+            ncd = gcmt.load(inputfile)
+        
+        if filename is None:
+            if snapshot and not highcadence:
+                name = self.workdir+"/snapshots/MOST_SNAP_transit.%05d%s"%(year,self.extension)
+            elif highcadence and not snapshot:
+                name = self.workdir+"/highcadence/MOST_HC_transit.%05d%s"%(year,self.extension)
+            else:
+                name = self.workdir+"/MOST_transit.%05d%s"%(year,self.extension)
+        else:
+            name = filename
             
         gases_vmr = {}
         if len(self.pgases)==0:
@@ -1358,8 +1416,92 @@ class Model(object):
     
     def image(self,year,times,obsv_coords,snapshot=True,highcadence=False,h2o_linelist='Exomol',
               num_cpus=None,cloudfunc=None,smooth=True,smoothweight=0.95,filldry=1.0e-6,
-              orennayar=True,debug=False,logfile=None,filename=None,inputfile=None):
+              orennayar=True,debug=False,logfile=None,filename=None,inputfile=None,
+              baremountainz=5.0e4,colorspace="sRGB",gamma=True,
+              consistency=True,vegpowerlaw=1.0):
+    '''Compute reflection+emission spectra for snapshot output
+    
+    This routine computes the reflection+emission spectrum for the planet at each
+    indicated time.
+    
+    Note that deciding what the observer coordinates ought to be may not be a trivial operation.
+    Simply setting them to always be the same is fine for a 1:1 synchronously-rotating planet,
+    where the insolation pattern never changes. But for an Earth-like rotator, you will need to
+    be mindful of rotation rate and the local time when snapshots are written. Perhaps you would
+    like to see how things look as the local time changes, as a geosynchronous satellite might observe,
+    or maybe you'd like to only observe in secondary eclipse or in quadrature, and so the observer-facing
+    coordinates may not be the same each time.
+    
+    Parameters
+    ----------
+    year : int
+        Year of output that should be imaged.
+    times : list(int)
+        List of time indices at which the image should be computed.
+    obsv_coords : numpy.ndarray (3D)
+        List of observer (lat,lon) coordinates for each
+        observing time. First axis is time, second axis is for each observer; the third axis is 
+        for lat and lon. Should have shape (time,observers,lat-lon). These are the surface coordinates 
+        that are directly facing the observer. 
+    snapshot : bool, optional
+        Whether snapshot output should be used.
+    highcadence : bool, optional
+        Whether high-cadence output should be used.
+    h2o_linelist : {'HITEMP','EXOMOL'}, optional
+        Either 'HITEMP' or 'EXOMOL'--the line list from which H2O absorption 
+        should be sourced
+    num_cpus : int, optional
+        The number of CPUs to use
+    cloudfunc : function, optional
+        A routine which takes pressure, temperature, and cloud water content
+        as arguments, and returns keyword arguments to be unpacked into calc_flux_transm.
+        If not specified, `basicclouds` will be used.
+    smooth : bool, optional
+        Whether or not to smooth humidity and cloud columns. As of Nov 12, 2021, it 
+        is recommended that you use smooth=True for well-behaved spectra. This is a
+        conservative smoothing operation, meaning the water and cloud column mass should
+        be conserved--what this does is move some water from the water-rich layers into
+        the layers directly above and below.
+    smoothweight : float, optional
+        The fraction of the water in a layer that should be retained during smoothing.
+        A higher value means the smoothing is less severe. 0.95 is probably the upper
+        limit for well-behaved spectra.
+    filldry : float, optional
+        If nonzero, the floor value for water humidity when moist layers are present above dry layers.
+        Columns will be adjusted in a mass-conserving manner with excess humidity accounted for in layers
+        *above* the filled layer, such that total optical depth from TOA is maintained at the dry layer.
+    orennayar : bool, optional
+        If True, compute true-colour intensity using Oren-Nayar scattering instead of Lambertian scattering.
+        Most solar system bodies do not exhibit Lambertian scattering.
+    debug : bool, optional
+        Optional debugging mode, that outputs intermediate quantities used in the imaging process.
+    logfile : str, optional
+        Optional log file to write diagnostics to.
+    filename : str, optional
+        Output filename; will be auto-generated if None.
+    inputfile : str, optional
+        If provided, ignore the year argument and image the provided output file.
+    baremountainz : float, optional
+        If vegetation is present, the geopotential above which mountains become bare rock instead of eroded vegetative regolith. Functionally, this means gray rock instead of brown/tan ground.
+    colorspace : str or np.ndarray(3,3)
+        Color gamut to be used. For available built-in color gamuts, see colormatch.colorgamuts.
+    gamma : bool or float, optional
+        If True, use the piecewise gamma-function defined for sRGB; otherwise if a float, use rgb^(1/gamma).
+        If None, gamma=1.0 is used.
+    consistency : bool, optional
+        If True, force surface albedo to match model output
+    vegpowerlaw : float, optional
+        Scale the apparent vegetation fraction by a power law. Setting this to 0.1, for example,
+        will increase the area that appears partially-vegetated, while setting it to 1.0 leaves
+        vegetation unchanged.
         
+        
+    Returns
+    -------
+    petitRADTRANS.Atmosphere, str
+        pRT Atmosphere object, filename the output file generated. Output file
+        can be stored in any of ExoPlaSim's standard supported output formats.
+    '''
         if year<0:
             #nfiles = len(glob.glob(self.workdir+"/"+pattern+"*%s"%self.extension))
             #year = nfiles+year
@@ -1408,7 +1550,10 @@ class Model(object):
                                                               num_cpus=num_cpus,cloudfunc=cloudfunc,smooth=smooth,
                                                               smoothweight=smoothweight,filldry=filldry,
                                                               ozone=self.ozone,stepsperyear=self.stepsperyear,
-                                                              orennayar=orennayar,debug=True)
+                                                              orennayar=orennayar,debug=True,
+                                                              baremountainz=baremountainz,colorspace=colorspace,
+                                                              gamma=gamma,consistency=consistency,
+                                                              vegpowerlaw=vegpowerlaw)
         
             output = pRT.save(name,{"wvl":wvl,"time":times,"star":atm.stellar_intensity*1e6,
                                             "images":spectra,"colors":colors,
@@ -1424,7 +1569,10 @@ class Model(object):
                                                               num_cpus=num_cpus,cloudfunc=cloudfunc,smooth=smooth,
                                                               smoothweight=smoothweight,filldry=filldry,
                                                               ozone=self.ozone,stepsperyear=self.stepsperyear,
-                                                              orennayar=orennayar)
+                                                              orennayar=orennayar,
+                                                              baremountainz=baremountainz,colorspace=colorspace,
+                                                              gamma=gamma,consistency=consistency,
+                                                              vegpowerlaw=vegpowerlaw)
         
             output = pRT.save(name,{"wvl":wvl,"time":times,"star":atm.stellar_intensity*1e6,
                                             "images":spectra,"colors":colors,

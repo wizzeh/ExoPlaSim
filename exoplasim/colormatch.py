@@ -73,7 +73,7 @@ def makexyz(wvl,spec,interpolant=None):
     imax = np.where(wvl<np.amax(w0))[0][-1]
     wn = wvl[imin:imax+1]
     specn = spec[imin:imax+1]
-    if not interpolant:
+    if interpolant is None:
         fx = interpolate.interp1d(w0,xx)
         fy = interpolate.interp1d(w0,yy)
         fz = interpolate.interp1d(w0,zz)

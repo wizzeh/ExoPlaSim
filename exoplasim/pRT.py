@@ -894,7 +894,7 @@ def makecolors(intensities,gamma=True,colorspace="sRGB"):
     for k in range(flatshape):
         colors[k,:] = cmatch.xyz2rgb(flatintensities[k,0],flatintensities[k,1],
                                      norms[k],gamut=colorspace)
-    #colors /= np.nanmax(colors)
+    colors /= np.nanmax(colors)
     colors = np.reshape(colors,ogshape)
     if gamma is True:
         colors[colors<0.0031308] = 12.92*colors[colors<0.0031308]
