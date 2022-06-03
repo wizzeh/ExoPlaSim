@@ -15,7 +15,6 @@ import exoplasim.randomcontinents
 import exoplasim.makestellarspec
 import exoplasim.surfacespecs
 import exoplasim.constants
-import exoplasim.pRT
 from exoplasim.constants import *
 import platform
 
@@ -1365,6 +1364,7 @@ class Model(object):
             Transit radius is in km.
         '''
         
+        import exoplasim.pRT
         
         if year<0:
             #nfiles = len(glob.glob(self.workdir+"/"+pattern+"*%s"%self.extension))
@@ -1502,6 +1502,9 @@ class Model(object):
             pRT Atmosphere object, filename the output file generated. Output file
             can be stored in any of ExoPlaSim's standard supported output formats.
         '''
+        
+        import exoplasim.pRT
+        
         if year<0:
             #nfiles = len(glob.glob(self.workdir+"/"+pattern+"*%s"%self.extension))
             #year = nfiles+year
