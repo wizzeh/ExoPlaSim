@@ -13,4 +13,7 @@ prune exoplasim/Plasim_UG_16
 prune exoplasim/puma
 prune exoplasim/Puma_UG_17
 prune exoplasim/ug_cat_00
+prune exoplasim/sam
+prune exoplasim/lsg
+prune exoplasim/tools
 prune exoplasim/plasim/run/*.sra

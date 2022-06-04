@@ -27,7 +27,7 @@ copyright = '2020, Adiv Paradise'
 author = 'Adiv Paradise'
 
 # The full version, including alpha/beta/rc tags
-release = '3.1.3'
+release = '3.1.4'
 
 
 # -- General configuration ---------------------------------------------------
