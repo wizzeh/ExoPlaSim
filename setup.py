@@ -3,13 +3,13 @@ import os
  
 setup(
     name='exoplasim',
-    version='3.1.4',
+    version='3.1.5',
     packages=['exoplasim',],
     zip_safe=False,
-    install_requires=["numpy>=1.16","matplotlib","scipy"],
+    install_requires=["numpy>=1.16,<1.22","matplotlib","scipy"],
     extras_require = {"netCDF4": ["netCDF4"],
                       "HDF5": ["h5py"],
-                      "petitRADTRANS": ["petitRADTRANS"]},
+                      "petitRADTRANS": ["petitRADTRANS>=2.4"]},
     include_package_data=True,
     exclude_package_data={'': ['exoplasim/cat*',
                                'exoplasim/Cat_UG_00',

@@ -337,7 +337,7 @@
       
       
       ! ================
-      ! SUBROUTINE SP2FC
+      ! SUBROUTINE SP3FC
       ! ================
       
       

@@ -545,10 +545,6 @@ def readfile(filename):
         Dictionary of model variables, indexed by numerical code
     '''
     
-    if sys.version[0]=="2":
-        import exoplasim.pyfft2 as pyfft
-    else:
-        import exoplasim.pyfft as pyfft
     
     with open(filename,"rb") as fb:
         fbuffer = fb.read()
@@ -574,6 +570,19 @@ def readfile(filename):
     nlon = max(headers['main'][4],headers['main'][5])
     ntru = headers['main'][7]
     ntimes = len(time)
+    
+    
+    if sys.version[0]=="2":
+        if nlat in [192,320]:
+            import exoplasim.pyfft991v2 as pyfft
+        else:
+            import exoplasim.pyfft2 as pyfft
+    else:
+        if nlat in [192,320]:
+            import exoplasim.pyfft991 as pyfft
+        else:
+            import exoplasim.pyfft as pyfft
+    
         
     sid,gwd = pyfft.inigau(nlat)
     rlat = np.arcsin(sid)
@@ -646,9 +655,15 @@ def _transformvar(lon,lat,variable,meta,nlat,nlon,nlev,ntru,ntime,mode='grid',
     '''
     
     if sys.version[0]=="2":
-        import exoplasim.pyfft2 as pyfft
+        if nlat in [192,320]:
+            import exoplasim.pyfft991v2 as pyfft
+        else:
+            import exoplasim.pyfft2 as pyfft
     else:
-        import exoplasim.pyfft as pyfft
+        if nlat in [192,320]:
+            import exoplasim.pyfft991 as pyfft
+        else:
+            import exoplasim.pyfft as pyfft
     
     if nlev in variable.shape:
         levd = "lev"
@@ -943,17 +958,24 @@ def _transformvectorvar(lon,uvar,vvar,umeta,vmeta,lats,nlon,nlev,ntru,ntime,mode
         Transformed array
     '''
     
-    if sys.version[0]=="2":
-        import exoplasim.pyfft2 as pyfft
-    else:
-        import exoplasim.pyfft as pyfft
-    
     if np.nanmax(lats)>10: #Dealing with degrees, not radians
         rlats = lats*np.pi/180.0
     else:
         rlats = lats[:]
         
     nlat = len(rlats)
+    
+    if sys.version[0]=="2":
+        if nlat in [192,320]:
+            import exoplasim.pyfft991v2 as pyfft
+        else:
+            import exoplasim.pyfft2 as pyfft
+    else:
+        if nlat in [192,320]:
+            import exoplasim.pyfft991 as pyfft
+        else:
+            import exoplasim.pyfft as pyfft
+    
         
     rdcostheta = radius/np.cos(rlats)
     costhetadr = np.cos(rlats)/radius
