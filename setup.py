@@ -22,7 +22,7 @@ setup(
                                'exoplasim/puma'
                                'exoplasim/Puma_UG_17'
                                'exoplasim/ug_cat_00'
-                               'exoplasim/plasim/run/*.sra']}
+                               'exoplasim/plasim/run/*.sra']},
     author='Adiv Paradise',
     author_email='paradise.astro@gmail.com',
     license='GNU General Public License',
