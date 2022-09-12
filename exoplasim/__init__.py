@@ -693,15 +693,16 @@ class Model(object):
         files = sorted(glob.glob("%s/MOST*%s"%(self.workdir,self.extension)))
         dd=np.zeros(len(files))
         for n in range(0,len(files)):
-            ncd = gcmt.load(files[n])
-            variable = ncd.variables[key][:]
-            lon = ncd.variables['lon'][:]
-            lat = ncd.variables['lat'][:]
-            if len(variable.shape)>3:
-                variable = variable[:,layer,:,:]
-            dd[n] = gcmt.spatialmath(variable,lon=lon,lat=lat,
-                                    mean=mean,radius=self.radius)
-            ncd.close()
+            if "_metadata" not in files[n]:
+                ncd = gcmt.load(files[n])
+                variable = ncd.variables[key][:]
+                lon = ncd.variables['lon'][:]
+                lat = ncd.variables['lat'][:]
+                if len(variable.shape)>3:
+                    variable = variable[:,layer,:,:]
+                dd[n] = gcmt.spatialmath(variable,lon=lon,lat=lat,
+                                        mean=mean,radius=self.radius)
+                ncd.close()
         return dd
     
     

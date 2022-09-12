@@ -582,12 +582,12 @@ def make2d(variable,lat=None,lon=None,time=None,lev=None,ignoreNaNs=True,radius=
             raise UnitError("You have probably passed a float time to a variable with no "+
                             "information about what that means. You should pass an integer "+
                             "time index instead")
-    elif time==None and len(variable.shape)>2:
+    elif time is None and len(variable.shape)>2:
         variable=meanop(variable,axis=0)
     elif time==0:
         variable=variable[time,:]
     if len(variable.shape)>2:
-        if lev!=None:
+        if lev is not None:
             if type(lev)==int:
                 variable=variable[lev,:]
             elif lev=="sum":
@@ -596,26 +596,34 @@ def make2d(variable,lat=None,lon=None,time=None,lev=None,ignoreNaNs=True,radius=
                 variable=meanop(variable,axis=0)
             else:
                 raise UnitError("Unknown level specification")
-        elif lat!=None and lon==None:
+        elif lat is not None and lon is None:
             if type(lat)==int:
                 variable=variable[:,lat,:]
             elif lat=="sum":
+                if longitudes is None or latitudes is None:
+                    raise Exception("You must provide latitudes and longitudes as 1D arrays.")
                 variable=latsum(variable,latitudes,dlon=longitudes[1]-longitudes[0],
                                 radius=radius)
             elif lat=="mean":
+                if latitudes is None:
+                    raise Exception("You must provide latitudes as a 1D array.")
                 variable=latmean(variable,latitudes)
             else:
                 raise UnitError("Unknown latitude specification")
-        elif lon!=None and lat==None:
+        elif lon is not None and lat is None:
             if type(lon)==int:
                 variable=variable[:,:,lon]
             elif lon=="sum":
+                if longitudes is None or latitudes is None:
+                    raise Exception("You must provide latitudes and longitudes as 1D arrays.")
                 newvar = np.zeros(variable.shape[:-1])
                 gradlat = np.gradient(np.sin(latitudes*np.pi/180.))
                 for lt in range(len(latitudes)):
                     newvar[:,lt]=lonsum(variable,longitudes,dsinlat=gradlat[lt],radius=radius)
                 variable = newvar
             elif lon=="mean":
+                if longitudes is None:
+                    raise Exception("You must provide longitudes as a 1D array.")
                 variable=lonmean(variable,longitudes)
             else:
                 raise UnitError("Unknown longitude specification")
