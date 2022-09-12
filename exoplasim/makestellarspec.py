@@ -80,7 +80,7 @@ def _coarsen(wvls,fluxes,w1,w2,num=5000):
     nlow = (inds[wvls>w1])[0]
     nhigh= (inds[wvls>w2])[0]
     
-    inc = int(nhigh-nlow)/num
+    inc = int(nhigh-nlow)//num
     
     waves = np.zeros(num)
     energ = wvls*fluxes
@@ -176,7 +176,7 @@ def main():
     #plt.xlabel("$\lambda$ [$\mu$m]")
     #plt.ylabel("$F_\lambda$ [W/m$^2$/$\mu$m]")
     #plt.show()
-    w2 = np.concatenate([np.geomspace(0.2,0.75,num=numw/2+1)[:-1],np.geomspace(0.75,100.0,num=numw/2)])
+    w2 = np.concatenate([np.geomspace(0.2,0.75,num=numw//2+1)[:-1],np.geomspace(0.75,100.0,num=numw//2)])
     plt.plot(w2)
     plt.yscale('log')
     plt.show()
@@ -197,7 +197,7 @@ def main():
     plt.xlabel("$\lambda$ [$\mu$m]")
     plt.ylabel("$F_\lambda$ [W/m$^2$/$\mu$m]")
     plt.show()
-    wvref = np.loadtxt("wvref.txt")
+    wvref = np.loadtxt(Path(__file__).parent.resolve()+"/wvref.txt")
     f3 = np.interp(wvref,w2,f2)
     writedat(w2,f2/cc,name+"_hr")
     writedat(wvref,f3/cc,name)

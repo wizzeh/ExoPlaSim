@@ -2592,7 +2592,7 @@ def advancedDataset(filename, variablecodes, substellarlon=180.0,
             elif key==str(pscode): #surface pressure
                 meta = ilibrary[key][:]
                 meta.append(key)
-                variable,meta = _transformvar(lon[:],lat[:],gridps,meta,nlat,nlon,
+                variable,meta = _transformvar(lon[:],lat[:],gridps*1.0e-2,meta,nlat,nlon,
                                               nlev,ntru,ntime,
                                               mode=mode,substellarlon=substellarlon,
                                               physfilter=physfilter,zonal=zonal)
