@@ -1351,7 +1351,8 @@
         do jlon = 0 , NLON-1
          jhor = jhor + 1
          zhangle = zrfrac + jlon * zrlon - PI
-         
+         if (nfixed==1) zhangle = zhangle + PI
+
          zmuz=sin(zdecl)*sid(jlat)+cola(jlat)*cos(zdecl)*cos(zhangle)
          if (zmuz > zdawn) gmu0(jhor) = zmuz
         enddo
