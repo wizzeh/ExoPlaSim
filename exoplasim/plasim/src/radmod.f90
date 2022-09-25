@@ -1343,7 +1343,7 @@
       if (nfixed==1) then
         if (mypid==NROOT) fixedlon = fixedlon + desync*mpstep
         call mpbcr(fixedlon)
-        zrfrac =  zcday
+        zrfrac =  zcday * TWOPI
       endif
       jhor = 0
       if (ncstsol==0) then
@@ -1351,8 +1351,6 @@
         do jlon = 0 , NLON-1
          jhor = jhor + 1
          zhangle = zrfrac + jlon * zrlon - PI
-         
-         if (nfixed==1) zhangle = zhangle + PI
          
          zmuz=sin(zdecl)*sid(jlat)+cola(jlat)*cos(zdecl)*cos(zhangle)
          if (zmuz > zdawn) gmu0(jhor) = zmuz
