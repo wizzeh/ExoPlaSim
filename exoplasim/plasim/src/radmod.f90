@@ -1342,6 +1342,7 @@
       zrlon = TWOPI / NLON           ! scale lambda to radians
       zrtim = rotspd * TWOPI / 1440.0         ! scale time   to radians
       zmins = ihou * 60 + imin
+      deltalamb = 0
       
       if (nfixed==1) then
         if (mypid==NROOT) fixedlon = fixedlon + desync*mpstep
