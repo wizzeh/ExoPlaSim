@@ -1342,12 +1342,12 @@
       zrlon = TWOPI / NLON           ! scale lambda to radians
       zrtim = rotspd * TWOPI / 1440.0         ! scale time   to radians
       zmins = ihou * 60 + imin
-      deltalamb = 0
       
       if (nfixed==1) then
         if (mypid==NROOT) fixedlon = fixedlon + desync*mpstep
         if (mypid==NROOT) adj_fixedlon = fixedlon - (360. * deltalamb / TWOPI)
         call mpbcr(fixedlon)
+        call mpbcr(adj_fixedlon)
         ! adj_fixedlon = fixedlon fixedlon - (360. * deltalamb / TWOPI)
         zrtim = TWOPI
         zmins = 1.0 - (adj_fixedlon/360.)  !Think about how to fix this: there's a dep
