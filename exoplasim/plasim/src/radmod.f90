@@ -1328,7 +1328,7 @@
 !
 !**   2) compute declination [radians]
 !
-      call orb_decl(zcday, eccen, mvelpp, lambm0, obliqr, zdecl, eccf)
+      call orb_decl(zcday, eccen, mvelpp, lambm0, obliqr, zdecl, eccf, deltalamb)
 !
 !**   3) compute zenith angle
 !
@@ -1343,15 +1343,18 @@
       if (nfixed==1) then
         if (mypid==NROOT) fixedlon = fixedlon + desync*mpstep
         call mpbcr(fixedlon)
-        zrfrac =  zcday * TWOPI
+        zrtim = TWOPI
+        zmins = 1.0 - (fixedlon/360.)  !Think about how to fix this: there's a dep
+
+        zrfrac =  zrtim * zmins
       endif
       jhor = 0
       if (ncstsol==0) then
        do jlat = 1 , NLPP
         do jlon = 0 , NLON-1
          jhor = jhor + 1
-         zhangle = zrfrac + jlon * zrlon - PI
-         if (nfixed==1) zhangle = zhangle + PI
+         zhangle = zrfrac + jlon * zrlon - PI + deltalamb
+         if (nfixed==1) zhangle = zhangle + PI + deltalamb
 
          zmuz=sin(zdecl)*sid(jlat)+cola(jlat)*cos(zdecl)*cos(zhangle)
          if (zmuz > zdawn) gmu0(jhor) = zmuz
@@ -1366,7 +1369,7 @@
         do jlon = 0 , NLON-1
          jhor = jhor + 1
          if (ndcycle == 1) then 
-          zhangle = zrfrac - PI
+          zhangle = zrfrac - PI + deltalamb
           zmuz=solslatsdec+solclatcdec*cos(zhangle)
          else
           zmuz=solslatsdec+solclatcdec/PI
@@ -2836,7 +2839,7 @@
 !     SUBROUTINE ORB_DECL
 !     ===================
 
-      subroutine orb_decl(calday,eccen,mvelpp,lambm0,obliqr,delta,eccf)
+      subroutine orb_decl(calday,eccen,mvelpp,lambm0,obliqr,delta,eccf,lamb)
       use pumamod, only: mcal_days_per_year,ndatim
 !
 !     Compute earth/orbit parameters using formula suggested by
@@ -2863,6 +2866,7 @@
 !     ----------------
       real :: delta      ! Solar declination angle in radians
       real :: eccf       ! Earth-sun distance factor ( i.e. (1/r)**2 )
+      real :: deltalamb  ! Difference between the mean and true longitude of perihelion.
 !
 !     Local variables
 !     ---------------
@@ -2919,6 +2923,7 @@
 !
       delta  = asin(sin(obliqr)*sin(lamb))
       eccf   = invrho*invrho
+      deltalamb = lambm - lamb
 !
       return
       end subroutine orb_decl
