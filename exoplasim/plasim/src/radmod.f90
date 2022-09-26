@@ -2929,7 +2929,7 @@
 !
       delta  = asin(sin(obliqr)*sin(lamb))
       eccf   = invrho*invrho
-      deltalamb = lambm - lamb
+      deltalamb = 30. !lambm - lamb
 !
       return
       end subroutine orb_decl
