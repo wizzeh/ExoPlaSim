@@ -1302,7 +1302,6 @@
 !     csq(NLPP)  : cosine**2 of gaussian latitudes
 !     cola(NLPP) : cosine of latitude
 !
-      real :: adj_fixedlon
 
 !
 !**   1) compute day of the year and hour of the day
@@ -1326,7 +1325,6 @@
       imin = (istp * mpstep*ntspd) / int(ntspd*slowdown+0.5)
       ihou = imin / 60
       imin = mod(imin,60)      
-      adj_fixedlon = 0.
       deltalamb = 0.
       
 !
@@ -1345,11 +1343,9 @@
       
       if (nfixed==1) then
         if (mypid==NROOT) fixedlon = fixedlon + desync*mpstep
-        if (mypid==NROOT) adj_fixedlon = mod(360. + fixedlon - (360. * deltalamb / TWOPI), 360.)
         call mpbcr(fixedlon)
-        call mpbcr(adj_fixedlon)
         zrtim = TWOPI
-        zmins = 1.0 - (adj_fixedlon/360.)  !Think about how to fix this: there's a dep
+        zmins = 1.0 - (fixedlon/360.)  !Think about how to fix this: there's a dep
                                        !on rotspd. Maybe zrtim = TWOPI/1440.0?
       endif
       jhor = 0
@@ -1357,7 +1353,7 @@
        do jlat = 1 , NLPP
         do jlon = 0 , NLON-1
          jhor = jhor + 1
-         zhangle = zmins * zrtim + jlon * zrlon - PI ! + deltalamb
+         zhangle = zmins * zrtim + jlon * zrlon - PI + deltalamb
          
          if (nfixed==1) zhangle = zhangle + PI
          
@@ -1374,7 +1370,7 @@
         do jlon = 0 , NLON-1
          jhor = jhor + 1
          if (ndcycle == 1) then 
-          zhangle = zmins * zrtim - PI ! + deltalamb
+          zhangle = zmins * zrtim - PI + deltalamb
           zmuz=solslatsdec+solclatcdec*cos(zhangle)
          else
           zmuz=solslatsdec+solclatcdec/PI
