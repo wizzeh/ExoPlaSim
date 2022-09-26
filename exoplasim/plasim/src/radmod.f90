@@ -1345,7 +1345,7 @@
       
       if (nfixed==1) then
         if (mypid==NROOT) fixedlon = fixedlon + desync*mpstep
-        if (mypid==NROOT) adj_fixedlon = fixedlon - (360. * deltalamb / TWOPI)
+        if (mypid==NROOT) adj_fixedlon = mod(360 + fixedlon - (360. * deltalamb / TWOPI), 360)
         call mpbcr(fixedlon)
         call mpbcr(adj_fixedlon)
         ! adj_fixedlon = fixedlon fixedlon - (360. * deltalamb / TWOPI)
