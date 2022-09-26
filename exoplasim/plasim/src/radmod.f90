@@ -1348,8 +1348,6 @@
         if (mypid==NROOT) adj_fixedlon = mod(360. + fixedlon - (360. * deltalamb / TWOPI), 360.)
         call mpbcr(fixedlon)
         call mpbcr(adj_fixedlon)
-        PRINT *, 'Fixedlon is ', fixedlon, ' and adj_fixedlon is ', adj_fixedlon, ' and deltalamb is ', (360. * deltalamb / TWOPI)
-        ! adj_fixedlon = fixedlon fixedlon - (360. * deltalamb / TWOPI)
         zrtim = TWOPI
         zmins = 1.0 - (adj_fixedlon/360.)  !Think about how to fix this: there's a dep
                                        !on rotspd. Maybe zrtim = TWOPI/1440.0?
