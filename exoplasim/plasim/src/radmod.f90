@@ -1338,24 +1338,23 @@
       zrlon = TWOPI / NLON           ! scale lambda to radians
       zrtim = rotspd * TWOPI / 1440.0         ! scale time   to radians
       zmins = ihou * 60 + imin
-      zrfrac = zmins * zrtim
       
       if (nfixed==1) then
         if (mypid==NROOT) fixedlon = fixedlon + desync*mpstep
         call mpbcr(fixedlon)
         zrtim = TWOPI
-        zmins = 1.0 - (fixedlon/360.)
-
-        zrfrac =  zrtim * zmins
+        zmins = 1.0 - (fixedlon/360.)  !Think about how to fix this: there's a dep
+                                       !on rotspd. Maybe zrtim = TWOPI/1440.0?
       endif
       jhor = 0
       if (ncstsol==0) then
        do jlat = 1 , NLPP
         do jlon = 0 , NLON-1
          jhor = jhor + 1
-         zhangle = zrfrac + jlon * zrlon - PI + deltalamb
-         if (nfixed==1) zhangle = zhangle + PI + deltalamb
-
+         zhangle = zmins * zrtim + jlon * zrlon - PI + deltalamb
+         
+         if (nfixed==1) zhangle = zhangle + PI
+         
          zmuz=sin(zdecl)*sid(jlat)+cola(jlat)*cos(zdecl)*cos(zhangle)
          if (zmuz > zdawn) gmu0(jhor) = zmuz
         enddo
@@ -1369,7 +1368,7 @@
         do jlon = 0 , NLON-1
          jhor = jhor + 1
          if (ndcycle == 1) then 
-          zhangle = zrfrac - PI + deltalamb
+          zhangle = zmins * zrtim - PI + deltalamb
           zmuz=solslatsdec+solclatcdec*cos(zhangle)
          else
           zmuz=solslatsdec+solclatcdec/PI
