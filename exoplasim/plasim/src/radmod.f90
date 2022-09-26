@@ -1351,7 +1351,7 @@
        do jlat = 1 , NLPP
         do jlon = 0 , NLON-1
          jhor = jhor + 1
-         zhangle = zmins * zrtim + jlon * zrlon - PI + deltalamb
+         zhangle = zmins * zrtim + jlon * zrlon - PI ! + deltalamb
          
          if (nfixed==1) zhangle = zhangle + PI
          
@@ -1368,7 +1368,7 @@
         do jlon = 0 , NLON-1
          jhor = jhor + 1
          if (ndcycle == 1) then 
-          zhangle = zmins * zrtim - PI + deltalamb
+          zhangle = zmins * zrtim - PI ! + deltalamb
           zmuz=solslatsdec+solclatcdec*cos(zhangle)
          else
           zmuz=solslatsdec+solclatcdec/PI
