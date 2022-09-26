@@ -1345,8 +1345,9 @@
       
       if (nfixed==1) then
         if (mypid==NROOT) fixedlon = fixedlon + desync*mpstep
+        if (mypid==NROOT) fixedlon = fixedlon - (360. * deltalamb / TWOPI)
         call mpbcr(fixedlon)
-        adj_fixedlon = 180 - 360. * deltalamb / TWOPI !fixedlon - (360. * deltalamb / TWOPI)
+        adj_fixedlon = fixedlon !fixedlon - (360. * deltalamb / TWOPI)
         zrtim = TWOPI
         zmins = 1.0 - (adj_fixedlon/360.)  !Think about how to fix this: there's a dep
                                        !on rotspd. Maybe zrtim = TWOPI/1440.0?
