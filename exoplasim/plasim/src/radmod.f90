@@ -1326,6 +1326,8 @@
       imin = (istp * mpstep*ntspd) / int(ntspd*slowdown+0.5)
       ihou = imin / 60
       imin = mod(imin,60)      
+      adj_fixedlon = 0.
+      deltalamb = 0.
       
 !
 !**   2) compute declination [radians]
