@@ -1302,6 +1302,8 @@
 !     csq(NLPP)  : cosine**2 of gaussian latitudes
 !     cola(NLPP) : cosine of latitude
 !
+      real :: adj_fixedlon
+
 !
 !**   1) compute day of the year and hour of the day
 !
@@ -1342,9 +1344,9 @@
       if (nfixed==1) then
         if (mypid==NROOT) fixedlon = fixedlon + desync*mpstep
         call mpbcr(fixedlon)
-        fixedlon = fixedlon - (360. * deltalamb / TWOPI)
+        adj_fixedlon = fixedlon - (360. * deltalamb / TWOPI)
         zrtim = TWOPI
-        zmins = 1.0 - (fixedlon/360.)  !Think about how to fix this: there's a dep
+        zmins = 1.0 - (adj_fixedlon/360.)  !Think about how to fix this: there's a dep
                                        !on rotspd. Maybe zrtim = TWOPI/1440.0?
       endif
       jhor = 0
