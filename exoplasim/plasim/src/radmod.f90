@@ -2846,7 +2846,7 @@
 !     SUBROUTINE ORB_DECL
 !     ===================
 
-      subroutine orb_decl(calday,eccen,mvelpp,lambm0,obliqr,delta,eccf,lamb)
+      subroutine orb_decl(calday,eccen,mvelpp,lambm0,obliqr,delta,eccf,deltalamb)
       use pumamod, only: mcal_days_per_year,ndatim
 !
 !     Compute earth/orbit parameters using formula suggested by
