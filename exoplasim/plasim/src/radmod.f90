@@ -1302,6 +1302,7 @@
 !     csq(NLPP)  : cosine**2 of gaussian latitudes
 !     cola(NLPP) : cosine of latitude
 !
+
 !
 !**   1) compute day of the year and hour of the day
 !
@@ -1324,11 +1325,12 @@
       imin = (istp * mpstep*ntspd) / int(ntspd*slowdown+0.5)
       ihou = imin / 60
       imin = mod(imin,60)      
+      deltalamb = 0.
       
 !
 !**   2) compute declination [radians]
 !
-      call orb_decl(zcday, eccen, mvelpp, lambm0, obliqr, zdecl, eccf)
+      call orb_decl(zcday, eccen, mvelpp, lambm0, obliqr, zdecl, eccf, deltalamb)
 !
 !**   3) compute zenith angle
 !
@@ -1344,14 +1346,14 @@
         call mpbcr(fixedlon)
         zrtim = TWOPI
         zmins = 1.0 - (fixedlon/360.)  !Think about how to fix this: there's a dep
-        zdecl = obliqr                 !on rotspd. Maybe zrtim = TWOPI/1440.0?
+                                       !on rotspd. Maybe zrtim = TWOPI/1440.0?
       endif
       jhor = 0
       if (ncstsol==0) then
        do jlat = 1 , NLPP
         do jlon = 0 , NLON-1
          jhor = jhor + 1
-         zhangle = zmins * zrtim + jlon * zrlon - PI
+         zhangle = zmins * zrtim + jlon * zrlon - PI + deltalamb
          
          if (nfixed==1) zhangle = zhangle + PI
          
@@ -1368,7 +1370,7 @@
         do jlon = 0 , NLON-1
          jhor = jhor + 1
          if (ndcycle == 1) then 
-          zhangle = zmins * zrtim - PI
+          zhangle = zmins * zrtim - PI + deltalamb
           zmuz=solslatsdec+solclatcdec*cos(zhangle)
          else
           zmuz=solslatsdec+solclatcdec/PI
@@ -2335,7 +2337,8 @@
 !
           implicit none
           real, parameter :: ORB_ECCEN_MIN  =   0.0                ! minimum value for eccen
-          real, parameter :: ORB_ECCEN_MAX  =   0.1                ! maximum value for eccen
+          real, parameter :: ORB_ECCEN_MAX  =   0.7                ! maximum value for eccen &
+                                       ! true anomaly calculation will probably break down past here
           real, parameter :: ORB_OBLIQ_MIN  = -90.0                ! minimum value for obliq
           real, parameter :: ORB_OBLIQ_MAX  = +90.0                ! maximum value for obliq
           real, parameter :: ORB_MVELP_MIN  =   0.0                ! minimum value for mvelp
@@ -2838,7 +2841,7 @@
 !     SUBROUTINE ORB_DECL
 !     ===================
 
-      subroutine orb_decl(calday,eccen,mvelpp,lambm0,obliqr,delta,eccf)
+      subroutine orb_decl(calday,eccen,mvelpp,lambm0,obliqr,delta,eccf,deltalamb)
       use pumamod, only: mcal_days_per_year,ndatim
 !
 !     Compute earth/orbit parameters using formula suggested by
@@ -2865,6 +2868,7 @@
 !     ----------------
       real :: delta      ! Solar declination angle in radians
       real :: eccf       ! Earth-sun distance factor ( i.e. (1/r)**2 )
+      real :: deltalamb  ! Difference between the mean and true longitude of perihelion.
 !
 !     Local variables
 !     ---------------
@@ -2921,6 +2925,7 @@
 !
       delta  = asin(sin(obliqr)*sin(lamb))
       eccf   = invrho*invrho
+      deltalamb = lambm - lamb
 !
       return
       end subroutine orb_decl
