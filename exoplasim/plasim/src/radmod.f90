@@ -1344,7 +1344,7 @@
         if (mypid==NROOT) fixedlon = fixedlon + desync*mpstep
         call mpbcr(fixedlon)
         zrtim = TWOPI
-        zmins = 1.0 - (fixedlon/360.)  !Think about how to fix this: there's a dep
+        zmins = 1.0 - (fixedlon/360.)
 
         zrfrac =  zrtim * zmins
       endif
